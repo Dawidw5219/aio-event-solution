@@ -837,71 +837,92 @@ class Plugin
 
     $insert_id = $result['insert_id'];
 
-    // Add to Brevo list if configured and not already added via form
-    if (!$from_brevo) {
-      $settings = get_option('aio_events_settings', []);
-      $global_default_list_id = $settings['default_brevo_list_id'] ?? '';
+    // Add to Brevo newsletter list via API
+    // Always add via API to ensure contact lands on configured list
+    $settings = get_option('aio_events_settings', []);
+    $global_default_list_id = $settings['default_brevo_list_id'] ?? '';
 
-      // Get event-specific list ID, fallback to global default
-      $event_list_id = get_post_meta($event_id, '_aio_event_brevo_list_id', true);
-      if (empty($event_list_id) && !empty($global_default_list_id)) {
-        $event_list_id = $global_default_list_id;
+    error_log('[AIO Events] Adding contact to Brevo - email: ' . $email . ', event_id: ' . $event_id . ', global_list_id: ' . $global_default_list_id);
+
+    // Get event-specific list ID, fallback to global default
+    $event_list_id = get_post_meta($event_id, '_aio_event_brevo_list_id', true);
+    error_log('[AIO Events] Event-specific list ID: ' . ($event_list_id ?: 'not set'));
+    
+    if (empty($event_list_id) && !empty($global_default_list_id)) {
+      $event_list_id = $global_default_list_id;
+      error_log('[AIO Events] Using global default list ID: ' . $event_list_id);
+    }
+
+    // Also check old meta key for migration
+    if (empty($event_list_id)) {
+      $old_list_ids = get_post_meta($event_id, '_aio_event_brevo_list_ids', true);
+      if (is_array($old_list_ids) && !empty($old_list_ids)) {
+        $event_list_id = absint($old_list_ids[0]);
+        error_log('[AIO Events] Using old meta list ID: ' . $event_list_id);
+      }
+    }
+
+    if (empty($event_list_id)) {
+      error_log('[AIO Events] ERROR: No Brevo list configured! Check Settings > Default Brevo List');
+    }
+
+    // Always try to add contact to Brevo (create/update contact)
+    require_once AIO_EVENTS_PATH . 'php/Integrations/BrevoAPI.php';
+    $brevo = new \AIOEvents\Integrations\BrevoAPI();
+
+    if (!$brevo->is_configured()) {
+      error_log('[AIO Events] ERROR: Brevo API not configured! Check API key in Settings');
+    } else {
+      $name_parts = explode(' ', $name, 2);
+      $first_name = $name_parts[0] ?? '';
+      $last_name = $name_parts[1] ?? '';
+
+      $attributes = [
+        'FIRSTNAME' => $first_name,
+        'LASTNAME' => $last_name,
+      ];
+      if (!empty($phone)) {
+        $attributes['SMS'] = $phone;
       }
 
-      // Also check old meta key for migration
-      if (empty($event_list_id)) {
-        $old_list_ids = get_post_meta($event_id, '_aio_event_brevo_list_ids', true);
-        if (is_array($old_list_ids) && !empty($old_list_ids)) {
-          $event_list_id = absint($old_list_ids[0]); // Use first list from old array
+      // Update EVENTS attribute - append event ID to existing list
+      $existing_contact = $brevo->get_contact($email);
+      $events_attribute_name = 'EVENTS';
+      
+      if (!is_wp_error($existing_contact) && $existing_contact !== null) {
+        $existing_events = $existing_contact['attributes'][$events_attribute_name] ?? '';
+        $existing_event_ids = [];
+        
+        if (!empty($existing_events)) {
+          $existing_event_ids = array_map('trim', explode(',', $existing_events));
+          $existing_event_ids = array_filter($existing_event_ids);
         }
+        
+        $event_id_str = (string) $event_id;
+        if (!in_array($event_id_str, $existing_event_ids, true)) {
+          $existing_event_ids[] = $event_id_str;
+        }
+        
+        $attributes[$events_attribute_name] = implode(',', $existing_event_ids);
+      } else {
+        $attributes[$events_attribute_name] = (string) $event_id;
       }
 
+      // Add to list if configured, otherwise just create/update contact
       if (!empty($event_list_id)) {
-        require_once AIO_EVENTS_PATH . 'php/Integrations/BrevoAPI.php';
-        $brevo = new \AIOEvents\Integrations\BrevoAPI();
-
-        if ($brevo->is_configured()) {
-          $name_parts = explode(' ', $name, 2);
-          $first_name = $name_parts[0] ?? '';
-          $last_name = $name_parts[1] ?? '';
-
-          $attributes = [
-            'FIRSTNAME' => $first_name,
-            'LASTNAME' => $last_name,
-          ];
-          if (!empty($phone)) {
-            $attributes['SMS'] = $phone;
-          }
-
-          // Update EVENTS attribute - append event ID to existing list
-          $existing_contact = $brevo->get_contact($email);
-          $events_attribute_name = 'EVENTS';
-          
-          if (!is_wp_error($existing_contact) && $existing_contact !== null) {
-            // Contact exists - get existing EVENTS attribute
-            $existing_events = $existing_contact['attributes'][$events_attribute_name] ?? '';
-            $existing_event_ids = [];
-            
-            if (!empty($existing_events)) {
-              // Parse existing event IDs (comma-separated)
-              $existing_event_ids = array_map('trim', explode(',', $existing_events));
-              $existing_event_ids = array_filter($existing_event_ids); // Remove empty values
-            }
-            
-            // Add current event ID if not already present
-            $event_id_str = (string) $event_id;
-            if (!in_array($event_id_str, $existing_event_ids, true)) {
-              $existing_event_ids[] = $event_id_str;
-            }
-            
-            // Join back with commas
-            $attributes[$events_attribute_name] = implode(',', $existing_event_ids);
-          } else {
-            // New contact - just add current event ID
-            $attributes[$events_attribute_name] = (string) $event_id;
-          }
-
-          $brevo->add_contact_to_list($email, $event_list_id, $attributes);
+        $result = $brevo->add_contact_to_list($email, $event_list_id, $attributes);
+        error_log('[AIO Events] add_contact_to_list result: ' . (is_wp_error($result) ? $result->get_error_message() : 'SUCCESS'));
+        
+        if (!is_wp_error($result)) {
+          \AIOEvents\Repositories\RegistrationRepository::update($insert_id, ['brevo_added' => true]);
+          error_log('[AIO Events] Contact added to list ' . $event_list_id . ' successfully');
+        }
+      } else {
+        // No list configured - just create/update contact without list assignment
+        $result = $brevo->create_contact($email, $attributes);
+        error_log('[AIO Events] create_contact result (no list): ' . (is_wp_error($result) ? $result->get_error_message() : 'SUCCESS'));
+        
+        if (!is_wp_error($result)) {
           \AIOEvents\Repositories\RegistrationRepository::update($insert_id, ['brevo_added' => true]);
         }
       }
