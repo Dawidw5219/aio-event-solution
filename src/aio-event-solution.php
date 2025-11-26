@@ -5,7 +5,7 @@
  * Text Domain: aio-event-solution
  * Domain Path: /languages
  * Description: Complete event management solution for WordPress with Brevo integration
- * Version: 1.0.6
+ * Version: 1.0.7
  * Author: App4You.dev
  * Author URI: https://app4you.dev
  * License: GPLv3 or later
