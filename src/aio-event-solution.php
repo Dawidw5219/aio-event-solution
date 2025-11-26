@@ -11,7 +11,7 @@
  * License: GPLv3 or later
  * License URI: https://www.gnu.org/licenses/gpl-3.0.html
  * Requires PHP: 7.4
- * GitHub URI: myivfanswers/aio-event-solution
+ * GitHub URI: Dawidw5219/aio-event-solution
  */
 
 // Exit if accessed directly.
