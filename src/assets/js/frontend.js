@@ -292,7 +292,7 @@ jQuery(document).ready(($) => {
 					if (registrationSent || !lastFormData) return;
 					registrationSent = true;
 
-					console.log("[AIO Events] Sending to our backend...");
+					console.log("[AIO Events] Sending to backend...");
 
 					$.ajax({
 						url: registerUrl + "?event_id=" + eventId,
@@ -303,111 +303,72 @@ jQuery(document).ready(($) => {
 							form_data: lastFormData,
 						}),
 						success: (response) => {
-							console.log(
-								"[AIO Events] Backend registration:",
-								response.success ? "OK" : "FAIL",
-							);
+							console.log("[AIO Events] Backend:", response.success ? "OK" : "FAIL");
 
 							const $wrapper = $(wrapper);
-							const $formContainer = $wrapper.find(
-								".aio-events-brevo-form-container",
-							);
-							const $successMessage = $wrapper.find(
-								".aio-events-registration-success",
-							);
+							const $formContainer = $wrapper.find(".aio-events-brevo-form-container");
+							const $successMessage = $wrapper.find(".aio-events-registration-success");
 
 							if (response.success || response.already_registered) {
 								$formContainer.slideUp(300);
 
 								const email = lastFormData.EMAIL || lastFormData.email || "";
 								if (email) {
-									$successMessage
-										.find(".aio-events-success-email-value")
-										.text(email.trim());
+									$successMessage.find(".aio-events-success-email-value").text(email.trim());
 								} else {
 									$successMessage.find(".aio-events-success-email").hide();
 								}
 
 								$successMessage.slideDown(300);
-								$("html, body").animate(
-									{ scrollTop: $successMessage.offset().top - 100 },
-									500,
-								);
+								$("html, body").animate({ scrollTop: $successMessage.offset().top - 100 }, 500);
 							}
 						},
 						error: (xhr) => {
-							console.error(
-								"[AIO Events] Backend error:",
-								xhr.responseJSON?.message,
-							);
-							registrationSent = false; // Allow retry
+							console.error("[AIO Events] Backend error:", xhr.responseJSON?.message);
+							registrationSent = false;
 						},
 					});
 				};
 
-				// Check if Brevo showed success message
-				const checkBrevoSuccess = () => {
-					if (registrationSent || !lastFormData) return false;
+				// Intercept XMLHttpRequest to detect Brevo API success
+				const originalXHROpen = XMLHttpRequest.prototype.open;
+				const originalXHRSend = XMLHttpRequest.prototype.send;
 
-					// Search entire form container for success text
-					const formText = form.textContent.toLowerCase();
-					if (
-						formText.includes("successful") ||
-						formText.includes("thank you") ||
-						formText.includes("subscribed")
-					) {
-						console.log("[AIO Events] Brevo success detected in form text");
-						return true;
-					}
-					return false;
+				XMLHttpRequest.prototype.open = function(method, url) {
+					this._aioUrl = url;
+					return originalXHROpen.apply(this, arguments);
 				};
 
-				// MutationObserver for DOM changes
-				const observer = new MutationObserver(() => {
-					if (checkBrevoSuccess()) {
-						sendToBackend();
-					}
-				});
-
-				observer.observe(form, {
-					childList: true,
-					subtree: true,
-					attributes: true,
-					characterData: true,
-				});
-
-				// FALLBACK: Poll every 500ms for 30 seconds after form submit
-				let pollInterval = null;
-				let pollCount = 0;
-
-				form.addEventListener(
-					"submit",
-					() => {
-						pollCount = 0;
-						if (pollInterval) clearInterval(pollInterval);
-
-						pollInterval = setInterval(() => {
-							pollCount++;
-							console.log("[AIO Events] Polling for success...", pollCount);
-
-							if (checkBrevoSuccess()) {
-								clearInterval(pollInterval);
+				XMLHttpRequest.prototype.send = function() {
+					if (this._aioUrl && this._aioUrl.includes("sibforms.com")) {
+						this.addEventListener("load", function() {
+							if (this.status === 200 && lastFormData && !registrationSent) {
+								console.log("[AIO Events] Brevo XHR success detected");
 								sendToBackend();
 							}
+						});
+					}
+					return originalXHRSend.apply(this, arguments);
+				};
 
-							// Stop polling after 30 seconds (60 x 500ms)
-							if (pollCount >= 60) {
-								clearInterval(pollInterval);
-								console.log("[AIO Events] Polling timeout");
+				// Also intercept fetch for newer Brevo implementations
+				const originalFetch = window.fetch;
+				window.fetch = function(url, options) {
+					const promise = originalFetch.apply(this, arguments);
+					
+					if (url && url.toString().includes("sibforms.com")) {
+						promise.then((response) => {
+							if (response.ok && lastFormData && !registrationSent) {
+								console.log("[AIO Events] Brevo fetch success detected");
+								sendToBackend();
 							}
-						}, 500);
-					},
-					true,
-				);
+						}).catch(() => {});
+					}
+					
+					return promise;
+				};
 
-				console.log(
-					"[AIO Events] Brevo form integration ready (pass-through + polling)",
-				);
+				console.log("[AIO Events] Brevo form integration ready");
 			}
 		}, 100);
 
