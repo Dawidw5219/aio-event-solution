@@ -220,17 +220,13 @@ jQuery(document).ready(($) => {
 	// Brevo Form - intercept and handle via our API (adds to Brevo + saves registration)
 	(() => {
 		const checkForm = setInterval(() => {
-			const form = document.querySelector("#sib-form");
-			if (!form) return;
+			const originalForm = document.querySelector("#sib-form");
+			if (!originalForm) return;
 
 			clearInterval(checkForm);
 
-			// Auto-fill and hide country field
-			autoFillCountry(form);
-			hideCountryField(form);
-
-			// Get event ID
-			const wrapper = form.closest("#aio-events-brevo-form-wrapper");
+			// Get wrapper before cloning
+			const wrapper = originalForm.closest("#aio-events-brevo-form-wrapper");
 			const eventId = wrapper?.dataset.eventId;
 
 			if (!eventId) {
@@ -238,7 +234,15 @@ jQuery(document).ready(($) => {
 				return;
 			}
 
-			// Block Brevo's submit handler
+			// CRITICAL: Clone form to remove ALL Brevo event listeners
+			const form = originalForm.cloneNode(true);
+			originalForm.parentNode.replaceChild(form, originalForm);
+
+			// Auto-fill and hide country field (on cloned form)
+			autoFillCountry(form);
+			hideCountryField(form);
+
+			// Now add our submit handler (no Brevo listeners exist)
 			form.addEventListener("submit", (e) => {
 				e.preventDefault();
 				e.stopPropagation();
