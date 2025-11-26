@@ -465,23 +465,27 @@ jQuery(document).ready(($) => {
 			icsBtn.addEventListener("click", (e) => {
 				e.preventDefault();
 
-				const icsContent = [
-					"BEGIN:VCALENDAR",
-					"VERSION:2.0",
-					"PRODID:-//AIO Events//Event Registration//EN",
-					"CALSCALE:GREGORIAN",
-					"METHOD:PUBLISH",
-					"BEGIN:VEVENT",
-					"DTSTART:" + utcStart,
-					"DTEND:" + utcEnd,
-					"SUMMARY:" + eventTitle.replace(/,/g, "\\,"),
-					"DESCRIPTION:" +
-						description.replace(/\n/g, "\\n").replace(/,/g, "\\,"),
-					"STATUS:CONFIRMED",
-					"UID:" + Date.now() + "@aio-events",
-					"END:VEVENT",
-					"END:VCALENDAR",
-				].join("\r\n");
+			// Get site name from document title (before separator)
+			const siteName = (document.title.split(/[|\-–—]/).pop() || location.hostname).trim().replace(/[,;]/g, "");
+			
+			const icsContent = [
+				"BEGIN:VCALENDAR",
+				"VERSION:2.0",
+				"PRODID:-//AIO Events//Event Registration//EN",
+				"CALSCALE:GREGORIAN",
+				"METHOD:PUBLISH",
+				"BEGIN:VEVENT",
+				"DTSTART:" + utcStart,
+				"DTEND:" + utcEnd,
+				"ORGANIZER;CN=" + siteName + ":" + location.origin,
+				"SUMMARY:" + eventTitle.replace(/,/g, "\\,"),
+				"DESCRIPTION:" +
+					description.replace(/\n/g, "\\n").replace(/,/g, "\\,"),
+				"STATUS:CONFIRMED",
+				"UID:" + Date.now() + "@aio-events",
+				"END:VEVENT",
+				"END:VCALENDAR",
+			].join("\r\n");
 
 				const blob = new Blob([icsContent], {
 					type: "text/calendar;charset=utf-8",

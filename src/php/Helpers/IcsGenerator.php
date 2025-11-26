@@ -94,20 +94,16 @@ class IcsGenerator
     }
 
     $subtitle = get_post_meta($post->ID, '_aio_event_subtitle', true);
-    $stream_url = get_post_meta($post->ID, '_aio_event_stream_url', true);
     $event_time = get_post_meta($post->ID, '_aio_event_start_time', true);
     $timezone_string = wp_timezone_string();
 
-    // Build description with timezone info
+    // Build description - NO stream URL here (sent separately in email)
     $description_parts = [];
     if (!empty($subtitle)) {
       $description_parts[] = $subtitle;
     }
     if (!empty($event_time)) {
       $description_parts[] = 'Time: ' . $event_time . ' (' . $timezone_string . ')';
-    }
-    if (!empty($stream_url)) {
-      $description_parts[] = 'Stream: ' . $stream_url;
     }
     $description = implode("\n\n", $description_parts);
 
@@ -116,7 +112,7 @@ class IcsGenerator
       'description' => $description,
       'start_date' => get_post_meta($post->ID, '_aio_event_start_date', true),
       'start_time' => $event_time,
-      'location' => $stream_url,
+      'location' => '', // No location - join link sent via email only
     ], $duration_minutes);
   }
 
