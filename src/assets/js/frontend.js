@@ -217,7 +217,7 @@ jQuery(document).ready(($) => {
 			});
 	};
 
-	// Brevo Form Interception - intercept form submission and handle via AJAX
+	// Brevo Form Integration - let Brevo handle form, then save to our DB
 	(() => {
 		// Wait for form to be rendered
 		const checkForm = setInterval(() => {
@@ -226,20 +226,14 @@ jQuery(document).ready(($) => {
 			if (form) {
 				clearInterval(checkForm);
 
-				// CRITICAL: Disable Brevo's own JavaScript by cloning the form
-				// This removes all event listeners attached by Brevo
-				const formClone = form.cloneNode(true);
-				form.parentNode.replaceChild(formClone, form);
-				const cleanForm = formClone;
-
 				// Auto-fill country field
-				autoFillCountry(cleanForm);
+				autoFillCountry(form);
 
 				// Hide country field (auto-filled, no need to show)
-				hideCountryField(cleanForm);
+				hideCountryField(form);
 
 				// Get event ID from wrapper
-				const wrapper = cleanForm.closest("#aio-events-brevo-form-wrapper");
+				const wrapper = form.closest("#aio-events-brevo-form-wrapper");
 				const eventId = wrapper ? wrapper.dataset.eventId : null;
 
 				if (!eventId) {
@@ -248,151 +242,96 @@ jQuery(document).ready(($) => {
 				}
 
 				const registerUrl = aioEvents.restUrl + "register";
+				let lastFormData = null;
+				let registrationSent = false;
 
-				// Intercept form submission (now clean form without Brevo listeners)
-				cleanForm.addEventListener("submit", (e) => {
-					e.preventDefault();
-					e.stopPropagation();
-
-					const $form = $(cleanForm);
-					const $wrapper = $(wrapper);
-					const $formContainer = $wrapper.find(
-						".aio-events-brevo-form-container",
-					);
-					const $successMessage = $wrapper.find(
-						".aio-events-registration-success",
-					);
-					const $errorMessage = $wrapper.find(".aio-events-registration-error");
-
-					// Hide error message
-					$errorMessage.hide();
-
-					// Disable submit button and show spinner
-					const $submitBtn = $form.find(
-						'button[type="submit"], input[type="submit"]',
-					);
-					const originalBtnHtml = $submitBtn.is("input")
-						? $submitBtn.val()
-						: $submitBtn.html();
-					$submitBtn.prop("disabled", true);
-					const spinner =
-						'<span class="aio-spinner" style="display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:aio-spin 0.8s linear infinite;vertical-align:middle;"></span>';
-					if (!document.getElementById("aio-spinner-style")) {
-						$("head").append(
-							'<style id="aio-spinner-style">@keyframes aio-spin{to{transform:rotate(360deg)}}</style>',
-						);
-					}
-					if ($submitBtn.is("input")) {
-						$submitBtn
-							.css("color", "transparent")
-							.after(
-								'<span class="aio-btn-spinner" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);">' +
-									spinner +
-									"</span>",
-							);
-						$submitBtn.parent().css("position", "relative");
-					} else {
-						$submitBtn.data("original-html", originalBtnHtml).html(spinner);
-					}
-
-					// Collect form data
-					const formData = {};
-					const formElements = cleanForm.elements;
+				// Capture form data on submit (before Brevo processes it)
+				form.addEventListener("submit", () => {
+					// Collect form data for later use
+					lastFormData = {};
+					const formElements = form.elements;
 					for (let i = 0; i < formElements.length; i++) {
 						const element = formElements[i];
 						if (element.name && element.name !== "email_address_check") {
 							if (element.type === "checkbox" || element.type === "radio") {
 								if (element.checked) {
-									formData[element.name] = element.value;
+									lastFormData[element.name] = element.value;
 								}
-							} else {
-								formData[element.name] = element.value;
+							} else if (element.value) {
+								lastFormData[element.name] = element.value;
 							}
 						}
 					}
+					registrationSent = false;
+					console.log("[AIO Events] Form submitted to Brevo, captured data:", lastFormData);
+				}, true); // Use capture to run before Brevo's handler
 
-					// Send via AJAX as JSON
-					$.ajax({
-						url: registerUrl + "?event_id=" + eventId,
-						type: "POST",
-						contentType: "application/json",
-						data: JSON.stringify({
-							event_id: parseInt(eventId),
-							form_data: formData,
-						}),
-						success: (response) => {
-							if (response.success) {
-								// Hide form container
-								$formContainer.slideUp(300, function () {
-									$(this).hide();
-								});
+				// Watch for Brevo success message
+				const observer = new MutationObserver((mutations) => {
+					// Check if success message appeared
+					const successPanel = form.querySelector(".sib-form-message-panel");
+					const isSuccess = successPanel && 
+						successPanel.style.display !== "none" && 
+						successPanel.textContent.length > 0 &&
+						!successPanel.classList.contains("sib-form-message-panel--error");
 
-								// Show success message with email if available
-								if (response.email) {
-									$successMessage
-										.find(".aio-events-success-email-value")
-										.text(response.email);
-								} else {
-									$successMessage.find(".aio-events-success-email").hide();
-								}
+					if (isSuccess && lastFormData && !registrationSent) {
+						registrationSent = true;
+						console.log("[AIO Events] Brevo success detected, sending to our backend...");
 
-								$successMessage.slideDown(300);
+						// Send to our backend
+						$.ajax({
+							url: registerUrl + "?event_id=" + eventId,
+							type: "POST",
+							contentType: "application/json",
+							data: JSON.stringify({
+								event_id: parseInt(eventId),
+								form_data: lastFormData,
+							}),
+							success: (response) => {
+								console.log("[AIO Events] Backend registration:", response.success ? "OK" : "FAIL");
+								
+								// Show our success message
+								const $wrapper = $(wrapper);
+								const $formContainer = $wrapper.find(".aio-events-brevo-form-container");
+								const $successMessage = $wrapper.find(".aio-events-registration-success");
 
-								// Scroll to success message
-								$("html, body").animate(
-									{
+								if (response.success || response.already_registered) {
+									// Hide Brevo form container
+									$formContainer.slideUp(300);
+
+									// Show our success message with email
+									const email = lastFormData.EMAIL || lastFormData.email || "";
+									if (email) {
+										$successMessage.find(".aio-events-success-email-value").text(email);
+									} else {
+										$successMessage.find(".aio-events-success-email").hide();
+									}
+
+									$successMessage.slideDown(300);
+
+									// Scroll to success message
+									$("html, body").animate({
 										scrollTop: $successMessage.offset().top - 100,
-									},
-									500,
-								);
-							} else {
-								// Show error message
-								const errorText = response.message || "Registration failed";
-								$errorMessage
-									.find(".aio-events-error-message-text")
-									.text(errorText);
-								$errorMessage.slideDown(300);
-
-								// Re-enable submit button and restore original content
-								$submitBtn.prop("disabled", false);
-								$(".aio-btn-spinner").remove();
-								if ($submitBtn.is("input")) {
-									$submitBtn.css("color", "").val(originalBtnHtml);
-								} else {
-									$submitBtn.html(originalBtnHtml);
+									}, 500);
 								}
-							}
-						},
-						error: (xhr) => {
-							const errorText =
-								xhr.responseJSON?.message || "Registration failed";
-
-							$errorMessage
-								.find(".aio-events-error-message-text")
-								.text(errorText);
-							$errorMessage.slideDown(300);
-
-							// Re-enable submit button and restore original content
-							$submitBtn.prop("disabled", false);
-							$(".aio-btn-spinner").remove();
-							if ($submitBtn.is("input")) {
-								$submitBtn.css("color", "").val(originalBtnHtml);
-							} else {
-								$submitBtn.html(originalBtnHtml);
-							}
-						},
-					});
+							},
+							error: (xhr) => {
+								console.error("[AIO Events] Backend registration error:", xhr.responseJSON?.message);
+							},
+						});
+					}
 				});
 
-				// Change form action to our endpoint (fallback for direct submission)
-				cleanForm.setAttribute("action", registerUrl + "?event_id=" + eventId);
+				// Start observing
+				observer.observe(form, {
+					childList: true,
+					subtree: true,
+					attributes: true,
+					attributeFilter: ["style", "class"],
+				});
 
-				// Remove any Brevo-related attributes that might cause issues
-				cleanForm.removeAttribute("data-sib-form");
-
-				console.log(
-					"[AIO Events] Form intercepted and cleaned from Brevo listeners",
-				);
+				console.log("[AIO Events] Brevo form integration ready (pass-through mode)");
 			}
 		}, 100);
 
@@ -465,27 +404,31 @@ jQuery(document).ready(($) => {
 			icsBtn.addEventListener("click", (e) => {
 				e.preventDefault();
 
-			// Get site name from document title (before separator)
-			const siteName = (document.title.split(/[|\-–—]/).pop() || location.hostname).trim().replace(/[,;]/g, "");
-			
-			const icsContent = [
-				"BEGIN:VCALENDAR",
-				"VERSION:2.0",
-				"PRODID:-//AIO Events//Event Registration//EN",
-				"CALSCALE:GREGORIAN",
-				"METHOD:PUBLISH",
-				"BEGIN:VEVENT",
-				"DTSTART:" + utcStart,
-				"DTEND:" + utcEnd,
-				"ORGANIZER;CN=" + siteName + ":" + location.origin,
-				"SUMMARY:" + eventTitle.replace(/,/g, "\\,"),
-				"DESCRIPTION:" +
-					description.replace(/\n/g, "\\n").replace(/,/g, "\\,"),
-				"STATUS:CONFIRMED",
-				"UID:" + Date.now() + "@aio-events",
-				"END:VEVENT",
-				"END:VCALENDAR",
-			].join("\r\n");
+				// Get site name from document title (before separator)
+				const siteName = (
+					document.title.split(/[|\-–—]/).pop() || location.hostname
+				)
+					.trim()
+					.replace(/[,;]/g, "");
+
+				const icsContent = [
+					"BEGIN:VCALENDAR",
+					"VERSION:2.0",
+					"PRODID:-//AIO Events//Event Registration//EN",
+					"CALSCALE:GREGORIAN",
+					"METHOD:PUBLISH",
+					"BEGIN:VEVENT",
+					"DTSTART:" + utcStart,
+					"DTEND:" + utcEnd,
+					"ORGANIZER;CN=" + siteName + ":" + location.origin,
+					"SUMMARY:" + eventTitle.replace(/,/g, "\\,"),
+					"DESCRIPTION:" +
+						description.replace(/\n/g, "\\n").replace(/,/g, "\\,"),
+					"STATUS:CONFIRMED",
+					"UID:" + Date.now() + "@aio-events",
+					"END:VEVENT",
+					"END:VCALENDAR",
+				].join("\r\n");
 
 				const blob = new Blob([icsContent], {
 					type: "text/calendar;charset=utf-8",
