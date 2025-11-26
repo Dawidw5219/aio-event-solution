@@ -68,6 +68,11 @@ class RegistrationService
   }
 
   /**
+   * Debug info storage (for API response)
+   */
+  public static $debug_info = [];
+
+  /**
    * Sync registration to Brevo
    */
   private static function sync_to_brevo($event_id, $email, $name, $phone, $extra_attributes, $insert_id)
@@ -76,25 +81,25 @@ class RegistrationService
     
     $brevo = new BrevoAPI();
     if (!$brevo->is_configured()) {
-      error_log('[AIO Events] ERROR: Brevo API not configured');
+      self::$debug_info['brevo_error'] = 'API not configured';
       return;
     }
 
     $list_id = self::get_brevo_list_id($event_id);
     $attributes = self::build_brevo_attributes($brevo, $email, $name, $phone, $extra_attributes, $event_id);
 
-    error_log('[AIO Events] Brevo sync - email: ' . $email . ', list_id: ' . ($list_id ?: 'none'));
-    error_log('[AIO Events] Brevo attributes: ' . wp_json_encode($attributes));
+    self::$debug_info['brevo_list_id'] = $list_id;
+    self::$debug_info['brevo_attributes_final'] = $attributes;
+    self::$debug_info['extra_attributes_received'] = $extra_attributes;
 
     $result = !empty($list_id)
       ? $brevo->add_contact_to_list($email, $list_id, $attributes)
       : $brevo->create_contact($email, $attributes);
 
+    self::$debug_info['brevo_result'] = is_wp_error($result) ? $result->get_error_message() : 'SUCCESS';
+
     if (!is_wp_error($result)) {
       RegistrationRepository::update($insert_id, ['brevo_added' => true]);
-      error_log('[AIO Events] Brevo sync SUCCESS');
-    } else {
-      error_log('[AIO Events] Brevo sync FAILED: ' . $result->get_error_message());
     }
   }
 
