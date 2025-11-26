@@ -39,6 +39,7 @@ class Plugin
     add_action('init', [$this, 'register_post_types']);
     add_action('init', [$this, 'register_shortcodes']);
     add_action('init', [$this, 'init_registration']);
+    add_action('init', [$this, 'maybe_flush_rewrite_rules'], 99);
     add_action('admin_menu', [$this, 'register_admin_pages']);
     add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
     add_action('wp_enqueue_scripts', [$this, 'enqueue_frontend_assets']);
@@ -149,17 +150,31 @@ class Plugin
   }
 
   /**
+   * Flush rewrite rules if slug was changed
+   */
+  public function maybe_flush_rewrite_rules()
+  {
+    if (get_option('aio_events_flush_rewrite')) {
+      flush_rewrite_rules();
+      delete_option('aio_events_flush_rewrite');
+    }
+  }
+
+  /**
    * Add custom Twig functions for templates
    */
   public function add_twig_functions($twig)
   {
-    // Add email template selector function
-    $twig->addFunction(new \Twig\TwigFunction('aio_render_email_template_selector', function ($args) {
-      require_once AIO_EVENTS_PATH . 'php/Helpers/EmailTemplateSelector.php';
-      ob_start();
-      \AIOEvents\Helpers\EmailTemplateSelector::render($args);
-      return ob_get_clean();
-    }, ['is_safe' => ['html']]));
+    // Check if function already registered to avoid duplicate registration
+    $existingFunctions = $twig->getFunctions();
+    if (!isset($existingFunctions['aio_render_email_template_selector'])) {
+      $twig->addFunction(new \Twig\TwigFunction('aio_render_email_template_selector', function ($args) {
+        require_once AIO_EVENTS_PATH . 'php/Helpers/EmailTemplateSelector.php';
+        ob_start();
+        \AIOEvents\Helpers\EmailTemplateSelector::render($args);
+        return ob_get_clean();
+      }, ['is_safe' => ['html']]));
+    }
 
     return $twig;
   }
@@ -198,6 +213,65 @@ class Plugin
   }
 
   /**
+   * AJAX: Check for GitHub updates
+   */
+  public function ajax_check_github_updates()
+  {
+    check_ajax_referer('aio-events-admin', 'nonce');
+    if (!current_user_can('manage_options')) {
+      wp_send_json_error(['message' => __('Permission denied', 'aio-event-solution')]);
+    }
+
+    // Delete update transients to force fresh check
+    delete_site_transient('update_plugins');
+    delete_transient('update_plugins');
+    
+    // Get current plugin version
+    $plugin_data = get_file_data(AIO_EVENTS_PATH . 'aio-event-solution.php', ['Version' => 'Version', 'GitHubURI' => 'GitHub URI']);
+    $current_version = $plugin_data['Version'] ?? '0.0.0';
+    $github_repo = $plugin_data['GitHubURI'] ?? '';
+    
+    if (empty($github_repo)) {
+      wp_send_json_error(['message' => __('GitHub URI not configured', 'aio-event-solution')]);
+    }
+    
+    // Fetch latest release from GitHub
+    $repo_parts = explode('/', $github_repo);
+    $url = sprintf('https://api.github.com/repos/%s/%s/releases/latest', trim($repo_parts[0]), trim($repo_parts[1]));
+    
+    $response = wp_remote_get($url, [
+      'headers' => ['Accept' => 'application/vnd.github.v3+json', 'User-Agent' => 'WordPress/' . get_bloginfo('version')],
+      'timeout' => 10,
+    ]);
+    
+    if (is_wp_error($response)) {
+      wp_send_json_error(['message' => $response->get_error_message()]);
+    }
+    
+    if (wp_remote_retrieve_response_code($response) !== 200) {
+      wp_send_json_error(['message' => __('Could not fetch GitHub releases', 'aio-event-solution')]);
+    }
+    
+    $release = json_decode(wp_remote_retrieve_body($response));
+    $latest_version = ltrim($release->tag_name ?? '', 'v');
+    
+    if (version_compare($latest_version, $current_version, '>')) {
+      wp_send_json_success([
+        'message' => sprintf(
+          __('Update available! v%s → v%s. Go to <a href="%s">Plugins</a> to update.', 'aio-event-solution'),
+          $current_version,
+          $latest_version,
+          admin_url('plugins.php')
+        ),
+      ]);
+    } else {
+      wp_send_json_success([
+        'message' => sprintf(__('You have the latest version (v%s).', 'aio-event-solution'), $current_version),
+      ]);
+    }
+  }
+
+  /**
    * Initialize plugin features
    */
   public function init_registration()
@@ -214,6 +288,7 @@ class Plugin
     add_action('wp_ajax_aio_save_brevo_key', [$this, 'ajax_save_brevo_key']);
     add_action('wp_ajax_aio_cancel_scheduled_emails', [$this, 'ajax_cancel_scheduled_emails']);
     add_action('wp_ajax_aio_force_run_cron', [$this, 'ajax_force_run_cron']);
+    add_action('wp_ajax_aio_check_github_updates', [$this, 'ajax_check_github_updates']);
     add_action('wp_ajax_aio_cancel_event_emails', [$this, 'ajax_cancel_event_emails']);
     add_action('wp_ajax_aio_export_registrations_csv', [$this, 'ajax_export_registrations_csv']);
 
@@ -652,7 +727,7 @@ class Plugin
     require_once AIO_EVENTS_PATH . 'php/Repositories/RegistrationRepository.php';
 
     if (!\AIOEvents\Repositories\RegistrationRepository::table_exists()) {
-      wp_die(__('Tabela rejestracji nie istnieje', 'aio-event-solution'));
+      wp_die(__('Registrations table does not exist', 'aio-event-solution'));
     }
 
     $registrations = \AIOEvents\Repositories\RegistrationRepository::get_by_event_id($event_id);

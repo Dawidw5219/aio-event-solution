@@ -450,6 +450,10 @@
 	padding-top: 0.5rem;
 	padding-bottom: 0.5rem;
 }
+.py-2\.5 {
+	padding-top: 0.625rem;
+	padding-bottom: 0.625rem;
+}
 .py-3 {
 	padding-top: 0.75rem;
 	padding-bottom: 0.75rem;
@@ -586,6 +590,11 @@
 	--tw-shadow-colored: 0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);
 	box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
+.shadow-sm {
+	--tw-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+	--tw-shadow-colored: 0 1px 2px 0 var(--tw-shadow-color);
+	box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
 .outline {
 	outline-style: solid;
 }
@@ -623,13 +632,17 @@ table.widefat.fixed {
 	position: static !important;
 	table-layout: fixed;
 }
+.hover\:border-green-400:hover {
+	--tw-border-opacity: 1;
+	border-color: rgb(74 222 128 / var(--tw-border-opacity, 1));
+}
 .hover\:bg-gray-200:hover {
 	--tw-bg-opacity: 1;
 	background-color: rgb(229 231 235 / var(--tw-bg-opacity, 1));
 }
-.hover\:bg-green-100:hover {
+.hover\:bg-green-50:hover {
 	--tw-bg-opacity: 1;
-	background-color: rgb(220 252 231 / var(--tw-bg-opacity, 1));
+	background-color: rgb(240 253 244 / var(--tw-bg-opacity, 1));
 }
 .hover\:bg-primary:hover {
 	background-color: var(--aio-color-primary, #2271b1);

@@ -44,7 +44,7 @@ class EventPostType
       'show_in_admin_bar' => true,
       'show_in_rest' => false, // Disable Gutenberg - use classic editor
       'query_var' => true,
-      'rewrite' => ['slug' => 'events'],
+      'rewrite' => ['slug' => self::get_events_slug()],
       'capability_type' => 'post',
       'has_archive' => false,
       'hierarchical' => false,
@@ -423,5 +423,14 @@ class EventPostType
       $query->set('meta_key', '_aio_event_start_date');
       $query->set('meta_type', 'DATE');
     }
+  }
+
+  /**
+   * Get events slug from settings
+   */
+  public static function get_events_slug()
+  {
+    $settings = get_option('aio_events_settings', []);
+    return !empty($settings['events_slug']) ? $settings['events_slug'] : 'events';
   }
 }

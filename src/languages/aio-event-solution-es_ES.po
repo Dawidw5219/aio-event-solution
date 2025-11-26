@@ -9,18 +9,12 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: 2025-01-17 12:00:00+0100
-"
-"Last-Translator: App4You.dev <info@app4you.dev>
-"
-"Language-Team: Spanish
-"
-"Language: es_ES
-"
-"Plural-Forms: nplurals=2; plural=(n != 1);
-"
-"X-Poedit-Country: Spain
-"
+"PO-Revision-Date: 2025-11-26 12:00:00+0100\n"
+"Last-Translator: App4You.dev <info@app4you.dev>\n"
+"Language-Team: Spanish\n"
+"Language: es_ES\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Poedit-Country: Spain\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 "X-Poedit-KeywordsList: "
 "__;_e;_x:1,2c;_ex:1,2c;_n:1,2;_nx:1,2,4c;_n_noop:1,2;_nx_noop:1,2,3c;esc_"
@@ -53,7 +47,7 @@ msgstr "Correo electrónico reenviado"
 
 #: php/API/BrevoWebhookController.php:164
 msgid "Brevo form URL not found"
-msgstr "URL del formulario Brevo no encontrado"
+msgstr "URL del formulario Brevo no encontrada"
 
 #: php/API/BrevoWebhookController.php:231 php/Plugin.php:312
 msgid "Registration completed successfully!"
@@ -106,103 +100,105 @@ msgstr "Participación en el evento exitosa"
 #: php/Admin/CronStatusPage.php:18 php/Admin/CronStatusPage.php:19
 #: php/Admin/CronStatusPage.php:49
 msgid "Cron Status"
-msgstr ""
+msgstr "Estado de Cron"
 
 #: php/Admin/CronStatusPage.php:37
 msgid "Cron manually triggered. Check logs below."
-msgstr ""
+msgstr "Cron activado manualmente. Revise los registros a continuación."
 
 #: php/Admin/CronStatusPage.php:55
 msgid "▶ Run Cron Now"
-msgstr ""
+msgstr "▶ Ejecutar Cron Ahora"
 
 #: php/Admin/CronStatusPage.php:59
 msgid "Manually trigger the email scheduler cron job"
-msgstr ""
+msgstr "Activar manualmente la tarea cron del programador de correos"
 
 #: php/Admin/CronStatusPage.php:64
 msgid "WordPress Cron Status"
-msgstr ""
+msgstr "Estado de WordPress Cron"
 
 #: php/Admin/CronStatusPage.php:68 php/Admin/CronStatusPage.php:72
 #: php/Admin/CronStatusPage.php:89
 msgid "⚠️ Warning:"
-msgstr ""
+msgstr "⚠️ Advertencia:"
 
 #: php/Admin/CronStatusPage.php:76
 msgid "Scheduled:"
-msgstr ""
+msgstr "Programado:"
 
 #: php/Admin/CronStatusPage.php:78
 msgid "Next run:"
-msgstr ""
+msgstr "Próxima ejecución:"
 
 #: php/Admin/CronStatusPage.php:85
 msgid "Execution Status"
-msgstr ""
+msgstr "Estado de ejecución"
 
 #: php/Admin/CronStatusPage.php:93
 msgid "⚠️ Critical:"
-msgstr ""
+msgstr "⚠️ Crítico:"
 
 #: php/Admin/CronStatusPage.php:94
 msgid ""
 "The cron job may not be executing. Check server cron configuration or "
 "consider using a real cron job instead of WordPress cron."
 msgstr ""
+"La tarea cron puede no estar ejecutándose. Verifique la configuración cron "
+"del servidor o considere usar una tarea cron real en lugar de WordPress cron."
 
 #: php/Admin/CronStatusPage.php:98
 msgid "OK:"
-msgstr ""
+msgstr "OK:"
 
 #: php/Admin/CronStatusPage.php:105
 msgid "Last Execution:"
-msgstr ""
+msgstr "Última ejecución:"
 
 #: php/Admin/CronStatusPage.php:109
 msgid "Status:"
-msgstr ""
+msgstr "Estado:"
 
 #: php/Admin/CronStatusPage.php:112 php/Admin/CronStatusPage.php:199
 #: php/Plugin.php:1010
 msgid "Success"
-msgstr ""
+msgstr "Éxito"
 
 #: php/Admin/CronStatusPage.php:116 php/Admin/CronStatusPage.php:203
 msgid "Warning"
-msgstr ""
+msgstr "Advertencia"
 
 #: php/Admin/CronStatusPage.php:121
 msgid "Duration:"
-msgstr ""
+msgstr "Duración:"
 
 #: php/Admin/CronStatusPage.php:125
 msgid "Scheduled Emails:"
-msgstr ""
+msgstr "Correos programados:"
 
 #: php/Admin/CronStatusPage.php:129 php/Admin/CronStatusPage.php:154
 msgid "Errors:"
-msgstr ""
+msgstr "Errores:"
 
 #: php/Admin/CronStatusPage.php:134
 msgid "Message:"
-msgstr ""
+msgstr "Mensaje:"
 
 #: php/Admin/CronStatusPage.php:143
 msgid "Statistics (Last 30 Days)"
-msgstr ""
+msgstr "Estadísticas (Últimos 30 días)"
 
 #: php/Admin/CronStatusPage.php:146
 msgid "Total Executions:"
-msgstr ""
+msgstr "Total de ejecuciones:"
 
 #: php/Admin/CronStatusPage.php:150
 msgid "Successful:"
-msgstr ""
+msgstr "Exitosas:"
 
 #: php/Admin/CronStatusPage.php:158
 msgid "Warnings:"
-msgstr ""
+msgstr "Advertencias:"
 
 #: php/Admin/CronStatusPage.php:162
 msgid "Avg Duration:"
@@ -258,27 +254,33 @@ msgid ""
 "WordPress cron relies on site traffic. If your site has low traffic, cron "
 "may not execute on time."
 msgstr ""
+"WordPress cron depende del tráfico del sitio. Si su sitio tiene poco "
+"tráfico, cron puede no ejecutarse a tiempo."
 
 #: php/Admin/CronStatusPage.php:221
 msgid ""
 "For production sites, consider disabling WordPress cron (define "
 "DISABLE_WP_CRON) and set up a real server cron job:"
 msgstr ""
+"Para sitios de producción, considere deshabilitar WordPress cron (define "
+"DISABLE_WP_CRON) y configure una tarea cron real del servidor:"
 
 #: php/Admin/CronStatusPage.php:224
 msgid "Monitor this page regularly to ensure cron is executing as expected."
-msgstr "Monitorea esta página regularmente para asegurarte de que el cron se ejecute como se espera."
+msgstr "Monitoree esta página regularmente para asegurarse de que cron se ejecute como se espera."
 
 #: php/Admin/CronStatusPage.php:225
 msgid ""
 "If cron is consistently missing, check your server error logs for WordPress "
 "cron issues."
 msgstr ""
+"Si cron falla consistentemente, revise los registros de errores de su "
+"servidor por problemas de WordPress cron."
 
 #: php/Admin/ScheduledEmailsPage.php:17 php/Admin/ScheduledEmailsPage.php:18
 #: php/Admin/ScheduledEmailsPage.php:51
 msgid "Scheduled Emails"
-msgstr "Correos electrónicos programados"
+msgstr "Correos programados"
 
 #: php/Admin/ScheduledEmailsPage.php:55
 msgid "Filter by status"
@@ -306,15 +308,15 @@ msgstr "%d elementos"
 
 #: php/Admin/ScheduledEmailsPage.php:75
 msgid "&laquo;"
-msgstr ""
+msgstr "&laquo;"
 
 #: php/Admin/ScheduledEmailsPage.php:76
 msgid "&raquo;"
-msgstr ""
+msgstr "&raquo;"
 
 #: php/Admin/ScheduledEmailsPage.php:88 php/PostTypes/EventPostType.php:20
 msgid "Event"
-msgstr ""
+msgstr "Evento"
 
 #: php/Admin/ScheduledEmailsPage.php:89 php/PostTypes/EventPostType.php:349
 msgid "Event Date"
@@ -326,7 +328,7 @@ msgstr "Programado para"
 
 #: php/Admin/ScheduledEmailsPage.php:92
 msgid "Brevo Message ID"
-msgstr ""
+msgstr "ID de mensaje Brevo"
 
 #: php/Admin/ScheduledEmailsPage.php:93
 msgid "Created"
@@ -334,7 +336,7 @@ msgstr "Creado"
 
 #: php/Admin/ScheduledEmailsPage.php:100
 msgid "No scheduled emails"
-msgstr "No hay correos electrónicos programados"
+msgstr "No hay correos programados"
 
 #: php/Admin/ScheduledEmailsPage.php:123
 msgid "Sent"
@@ -342,11 +344,11 @@ msgstr "Enviado"
 
 #: php/Admin/SettingsPage.php:20 php/Admin/SettingsPage.php:21
 msgid "Settings"
-msgstr ""
+msgstr "Configuración"
 
 #: php/Admin/SettingsPage.php:47
 msgid "Brevo Email Marketing Integration"
-msgstr ""
+msgstr "Integración de Email Marketing Brevo"
 
 #: php/Admin/SettingsPage.php:55 php/Admin/SettingsPage.php:507
 #: php/Admin/SettingsPage.php:1149 php/PostTypes/EventPostType.php:139
@@ -355,7 +357,7 @@ msgstr "Clave API Brevo"
 
 #: php/Admin/SettingsPage.php:62
 msgid "Enter your Brevo API key to enable email marketing integration"
-msgstr "Ingresa tu clave API Brevo para habilitar la integración de marketing por correo electrónico"
+msgstr "Ingrese su clave API Brevo para habilitar la integración de email marketing"
 
 #: php/Admin/SettingsPage.php:69 php/Admin/SettingsPage.php:508
 #: php/Admin/SettingsPage.php:1152 php/PostTypes/EventPostType.php:142
@@ -367,10 +369,12 @@ msgid ""
 "Default list to which users from events will be added. You can override "
 "this for each event individually."
 msgstr ""
+"Lista predeterminada a la que se agregarán los usuarios de eventos. Puede "
+"sobrescribir esto para cada evento individualmente."
 
 #: php/Admin/SettingsPage.php:83
 msgid "Email Templates"
-msgstr "Plantillas de correo electrónico"
+msgstr "Plantillas de correo"
 
 #: php/Admin/SettingsPage.php:91 php/Admin/SettingsPage.php:509
 #: php/Admin/SettingsPage.php:1155 php/PostTypes/EventPostType.php:145
@@ -409,7 +413,7 @@ msgstr "Plantilla enviada después de que termine el evento"
 
 #: php/Admin/SettingsPage.php:147
 msgid "Email Timing"
-msgstr "Temporización de correo electrónico"
+msgstr "Temporización de correos"
 
 #: php/Admin/SettingsPage.php:155
 msgid "Time Before Event (minutes)"
@@ -417,7 +421,7 @@ msgstr "Tiempo antes del evento (minutos)"
 
 #: php/Admin/SettingsPage.php:162
 msgid "How many minutes before event start to send reminder (default: 1440 = 24h)"
-msgstr ""
+msgstr "Cuántos minutos antes del inicio del evento enviar recordatorio (predeterminado: 1440 = 24h)"
 
 #: php/Admin/SettingsPage.php:171
 msgid "Time Before Join (minutes)"
@@ -428,6 +432,8 @@ msgid ""
 "How many minutes before event start to send email with join link (default: "
 "10)"
 msgstr ""
+"Cuántos minutos antes del inicio del evento enviar correo con enlace de "
+"participación (predeterminado: 10)"
 
 #: php/Admin/SettingsPage.php:187
 msgid "Time After Event (minutes)"
@@ -435,7 +441,7 @@ msgstr "Tiempo después del evento (minutos)"
 
 #: php/Admin/SettingsPage.php:194
 msgid "How many minutes after event ends to send email (default: 120 = 2h)"
-msgstr ""
+msgstr "Cuántos minutos después de que termine el evento enviar correo (predeterminado: 120 = 2h)"
 
 #: php/Admin/SettingsPage.php:217
 msgid "Default Registration Form"
@@ -451,6 +457,8 @@ msgid ""
 "Paste Brevo form HTML code. Will be used for all events unless an event has "
 "its own form."
 msgstr ""
+"Pegue el código HTML del formulario Brevo. Se usará para todos los eventos "
+"a menos que un evento tenga su propio formulario."
 
 #: php/Admin/SettingsPage.php:244
 msgid "Post-Event Message"
@@ -466,6 +474,8 @@ msgid ""
 "Default message displayed after event ends. Can be overridden for each "
 "event individually."
 msgstr ""
+"Mensaje predeterminado mostrado después de que termine el evento. Puede "
+"sobrescribirse para cada evento individualmente."
 
 #: php/Admin/SettingsPage.php:270
 msgid "Visual Settings"
@@ -473,35 +483,35 @@ msgstr "Configuración visual"
 
 #: php/Admin/SettingsPage.php:278
 msgid "Primary Color"
-msgstr ""
+msgstr "Color primario"
 
 #: php/Admin/SettingsPage.php:285
 msgid "Main brand color used for buttons, links, and highlights"
-msgstr ""
+msgstr "Color principal de marca usado para botones, enlaces y destacados"
 
 #: php/Admin/SettingsPage.php:292
 msgid "Secondary Color"
-msgstr ""
+msgstr "Color secundario"
 
 #: php/Admin/SettingsPage.php:299
 msgid "Secondary color for backgrounds and accents"
-msgstr ""
+msgstr "Color secundario para fondos y acentos"
 
 #: php/Admin/SettingsPage.php:306
 msgid "Content Box Background"
-msgstr ""
+msgstr "Fondo de caja de contenido"
 
 #: php/Admin/SettingsPage.php:313
 msgid "Background color for event content box"
-msgstr ""
+msgstr "Color de fondo para la caja de contenido del evento"
 
 #: php/Admin/SettingsPage.php:320
 msgid "Date Format"
-msgstr ""
+msgstr "Formato de fecha"
 
 #: php/Admin/SettingsPage.php:327
 msgid "Choose how dates should be displayed"
-msgstr ""
+msgstr "Elija cómo deben mostrarse las fechas"
 
 #: php/Admin/SettingsPage.php:338
 msgid "Features"
@@ -513,7 +523,7 @@ msgstr "Habilitar RSVP"
 
 #: php/Admin/SettingsPage.php:353
 msgid "Allow visitors to RSVP to events"
-msgstr "Permitir a los visitantes responder RSVP a los eventos"
+msgstr "Permitir a los visitantes confirmar asistencia a eventos"
 
 #: php/Admin/SettingsPage.php:360
 msgid "Enable Calendar View"
@@ -529,13 +539,15 @@ msgstr "Depuración y registro"
 
 #: php/Admin/SettingsPage.php:386
 msgid "Debug Email"
-msgstr "Correo electrónico de depuración"
+msgstr "Correo de depuración"
 
 #: php/Admin/SettingsPage.php:393
 msgid ""
 "Email address to receive error notifications from cron jobs and system "
 "errors"
 msgstr ""
+"Dirección de correo para recibir notificaciones de errores de tareas cron "
+"y errores del sistema"
 
 #: php/Admin/SettingsPage.php:404
 msgid "Test & Development Tools"
@@ -543,13 +555,15 @@ msgstr "Herramientas de prueba y desarrollo"
 
 #: php/Admin/SettingsPage.php:522 php/Admin/SettingsPage.php:528
 msgid "Field \"%s\" is required and cannot be empty."
-msgstr ""
+msgstr "El campo \"%s\" es requerido y no puede estar vacío."
 
 #: php/Admin/SettingsPage.php:587
 msgid ""
 "Configure email sending times in minutes before/after event. These settings "
 "can be overridden for each event individually."
 msgstr ""
+"Configure los tiempos de envío de correos en minutos antes/después del evento. "
+"Estas configuraciones pueden sobrescribirse para cada evento individualmente."
 
 #: php/Admin/SettingsPage.php:595
 msgid ""
@@ -557,6 +571,9 @@ msgid ""
 "Select templates that will be used for automatic email sending to event "
 "participants."
 msgstr ""
+"Las plantillas de correo son patrones de mensajes predefinidos creados en "
+"Brevo. Seleccione las plantillas que se usarán para el envío automático de "
+"correos a los participantes del evento."
 
 #: php/Admin/SettingsPage.php:601
 msgid "Create or manage templates in Brevo"
@@ -564,17 +581,19 @@ msgstr "Crear o gestionar plantillas en Brevo"
 
 #: php/Admin/SettingsPage.php:605
 msgid "View Scheduled Emails"
-msgstr "Ver correos electrónicos programados"
+msgstr "Ver correos programados"
 
 #: php/Admin/SettingsPage.php:668
 msgid ""
 "Connect your Brevo account to automatically add event registrants to your "
 "email lists."
 msgstr ""
+"Conecte su cuenta Brevo para agregar automáticamente registrantes de eventos "
+"a sus listas de correo."
 
 #: php/Admin/SettingsPage.php:670
 msgid "Get your API key from %s"
-msgstr "Obtén tu clave API de %s"
+msgstr "Obtenga su clave API de %s"
 
 #: php/Admin/SettingsPage.php:681
 msgid "Registrations table not found!"
@@ -582,7 +601,7 @@ msgstr "¡Tabla de registros no encontrada!"
 
 #: php/Admin/SettingsPage.php:682
 msgid "Click the button below to create the required database table."
-msgstr "Haz clic en el botón a continuación para crear la tabla de base de datos requerida."
+msgstr "Haga clic en el botón a continuación para crear la tabla de base de datos requerida."
 
 #: php/Admin/SettingsPage.php:683 php/Admin/SettingsPage.php:816
 msgid "Create Registrations Table"
@@ -598,7 +617,7 @@ msgstr "suscriptores"
 
 #: php/Admin/SettingsPage.php:739
 msgid "Configure Brevo API key to see list of lists"
-msgstr "Configura la clave API Brevo para ver la lista de listas"
+msgstr "Configure la clave API Brevo para ver la lista de listas"
 
 #: php/Admin/SettingsPage.php:765 php/Admin/SettingsPage.php:793
 msgid "Test Connection"
@@ -606,11 +625,11 @@ msgstr "Probar conexión"
 
 #: php/Admin/SettingsPage.php:779
 msgid "Testing..."
-msgstr ""
+msgstr "Probando..."
 
 #: php/Admin/SettingsPage.php:802
 msgid "Creating..."
-msgstr ""
+msgstr "Creando..."
 
 #: php/Admin/SettingsPage.php:841 php/Plugin.php:701
 msgid "Name"
@@ -618,50 +637,52 @@ msgstr "Nombre"
 
 #: php/Admin/SettingsPage.php:842
 msgid "Form URL"
-msgstr ""
+msgstr "URL del formulario"
 
 #: php/Admin/SettingsPage.php:843
 msgid "Embed Code (iframe/script)"
-msgstr ""
+msgstr "Código de inserción (iframe/script)"
 
 #: php/Admin/SettingsPage.php:861 php/Admin/SettingsPage.php:878
 #: php/Admin/SettingsPage.php:910
 msgid "Remove"
-msgstr ""
+msgstr "Eliminar"
 
 #: php/Admin/SettingsPage.php:887
 msgid "Add Form"
-msgstr ""
+msgstr "Agregar formulario"
 
 #: php/Admin/SettingsPage.php:1012
 msgid ""
 "Configure error logging and notifications. Errors from cron jobs and system "
 "operations will be sent to the debug email address."
 msgstr ""
+"Configure el registro de errores y notificaciones. Los errores de tareas cron "
+"y operaciones del sistema se enviarán a la dirección de correo de depuración."
 
 #: php/Admin/SettingsPage.php:1024
 msgid "These event names will be used when sending events to Brevo via API."
-msgstr ""
+msgstr "Estos nombres de eventos se usarán al enviar eventos a Brevo via API."
 
 #: php/Admin/SettingsPage.php:1025
 msgid "Registration event name"
-msgstr ""
+msgstr "Nombre del evento de registro"
 
 #: php/Admin/SettingsPage.php:1027
 msgid "10min reminder event name"
-msgstr ""
+msgstr "Nombre del evento de recordatorio de 10min"
 
 #: php/Admin/SettingsPage.php:1032
 msgid "Create sample events (seed)"
-msgstr ""
+msgstr "Crear eventos de ejemplo (seed)"
 
 #: php/Admin/SettingsPage.php:1034
 msgid "Send test event for email"
-msgstr ""
+msgstr "Enviar evento de prueba para correo"
 
 #: php/Admin/SettingsPage.php:1182
 msgid "Cannot add event. Please fill in the following required fields:"
-msgstr "No se puede agregar el evento. Por favor, completa los siguientes campos obligatorios:"
+msgstr "No se puede agregar el evento. Por favor, complete los siguientes campos requeridos:"
 
 #: php/Admin/SettingsPage.php:1186
 msgid "Event Settings"
@@ -669,13 +690,15 @@ msgstr "Configuración de eventos"
 
 #: php/Helpers/BrevoVariablesHelper.php:40
 msgid "Available variables in email content:"
-msgstr "Variables disponibles en el contenido del correo electrónico:"
+msgstr "Variables disponibles en el contenido del correo:"
 
 #: php/Helpers/BrevoVariablesHelper.php:43
 msgid ""
 "You can use these variables in Brevo email template content. Insert them in "
 "the format:"
 msgstr ""
+"Puede usar estas variables en el contenido de la plantilla de correo Brevo. "
+"Insértelas en el formato:"
 
 #: php/Helpers/EmailTemplateSelector.php:33
 msgid "Select template"
@@ -687,7 +710,7 @@ msgstr "Usar global"
 
 #: php/Helpers/EmailTemplateSelector.php:100
 msgid "Configure Brevo API key to see list of templates"
-msgstr "Configura la clave API Brevo para ver la lista de plantillas"
+msgstr "Configure la clave API Brevo para ver la lista de plantillas"
 
 #: php/Integrations/BrevoAPI.php:43 php/Integrations/BrevoAPI.php:84
 #: php/Integrations/BrevoAPI.php:118 php/Integrations/BrevoAPI.php:165
@@ -699,51 +722,51 @@ msgstr "Clave API Brevo no configurada"
 
 #: php/Integrations/BrevoAPI.php:71
 msgid "Failed to fetch contact from Brevo"
-msgstr ""
+msgstr "Error al obtener contacto de Brevo"
 
 #: php/Integrations/BrevoAPI.php:105
 msgid "Failed to fetch lists from Brevo"
-msgstr ""
+msgstr "Error al obtener listas de Brevo"
 
 #: php/Integrations/BrevoAPI.php:152
 msgid "Failed to add contact to Brevo list"
-msgstr ""
+msgstr "Error al agregar contacto a la lista Brevo"
 
 #: php/Integrations/BrevoAPI.php:197
 msgid "Failed to create contact in Brevo"
-msgstr ""
+msgstr "Error al crear contacto en Brevo"
 
 #: php/Integrations/BrevoAPI.php:226
 msgid "Failed to connect to Brevo API"
-msgstr ""
+msgstr "Error al conectar con la API de Brevo"
 
 #: php/Integrations/BrevoAPI.php:251
 msgid "Event name and email are required"
-msgstr ""
+msgstr "El nombre del evento y el correo son requeridos"
 
 #: php/Integrations/BrevoAPI.php:283
 msgid "Failed to send Brevo event"
-msgstr ""
+msgstr "Error al enviar evento Brevo"
 
 #: php/Integrations/BrevoAPI.php:309
 msgid "Template ID and recipients are required"
-msgstr ""
+msgstr "El ID de plantilla y los destinatarios son requeridos"
 
 #: php/Integrations/BrevoAPI.php:350
 msgid "Failed to schedule email in Brevo"
-msgstr ""
+msgstr "Error al programar correo en Brevo"
 
 #: php/Integrations/BrevoAPI.php:390
 msgid "Failed to fetch email templates from Brevo"
-msgstr ""
+msgstr "Error al obtener plantillas de correo de Brevo"
 
 #: php/MetaBoxes/BrevoIntegrationMetaBox.php:33
 msgid "Brevo Integration"
-msgstr ""
+msgstr "Integración Brevo"
 
 #: php/MetaBoxes/EventDetailsMetaBox.php:33
 msgid "Event Details"
-msgstr ""
+msgstr "Detalles del evento"
 
 #: php/MetaBoxes/EventDetailsMetaBox.php:51 php/PostTypes/EventPostType.php:165
 #: php/PostTypes/EventPostType.php:247
@@ -761,11 +784,11 @@ msgstr "Registros de eventos"
 
 #: php/Plugin.php:111
 msgid "Scheduled %d emails"
-msgstr ""
+msgstr "%d correos programados"
 
 #: php/Plugin.php:124
 msgid "Exception: %s"
-msgstr ""
+msgstr "Excepción: %s"
 
 #: php/Plugin.php:141 php/Plugin.php:158 php/Plugin.php:323 php/Plugin.php:356
 #: php/Plugin.php:472 php/Plugin.php:603 php/Plugin.php:664
@@ -774,11 +797,11 @@ msgstr "Permiso denegado"
 
 #: php/Plugin.php:148
 msgid "Configured events: %s, %s"
-msgstr ""
+msgstr "Eventos configurados: %s, %s"
 
 #: php/Plugin.php:163
 msgid "Provide a valid email"
-msgstr "Proporciona un correo electrónico válido"
+msgstr "Proporcione un correo electrónico válido"
 
 #: php/Plugin.php:192
 msgid "Test event sent successfully"
@@ -786,15 +809,15 @@ msgstr "Evento de prueba enviado con éxito"
 
 #: php/Plugin.php:288
 msgid "All fields are required"
-msgstr "Todos los campos son obligatorios"
+msgstr "Todos los campos son requeridos"
 
 #: php/Plugin.php:298 php/Plugin.php:309
 msgid "You are already registered for this event"
-msgstr "Ya estás registrado para este evento"
+msgstr "Ya está registrado para este evento"
 
 #: php/Plugin.php:329
 msgid "API key is required"
-msgstr ""
+msgstr "La clave API es requerida"
 
 #: php/Plugin.php:342
 msgid "Connected successfully! Account: %s"
@@ -802,7 +825,7 @@ msgstr "¡Conectado con éxito! Cuenta: %s"
 
 #: php/Plugin.php:368
 msgid "No scheduled emails to cancel"
-msgstr "No hay correos electrónicos programados para cancelar"
+msgstr "No hay correos programados para cancelar"
 
 #: php/Plugin.php:430 php/Plugin.php:551
 msgid "Cancellation message"
@@ -810,31 +833,35 @@ msgstr "Mensaje de cancelación"
 
 #: php/Plugin.php:450
 msgid "Cancelled %d scheduled emails."
-msgstr "%d correos electrónicos programados cancelados."
+msgstr "%d correos programados cancelados."
 
 #: php/Plugin.php:456 php/Plugin.php:586
 msgid "Sent %d replacement emails."
-msgstr "%d correos electrónicos de reemplazo enviados."
+msgstr "%d correos de reemplazo enviados."
 
 #: php/Plugin.php:477
 msgid "Event ID is required"
-msgstr "Se requiere el ID del evento"
+msgstr "El ID del evento es requerido"
 
 #: php/Plugin.php:492
 msgid "No scheduled emails for this event"
-msgstr "No hay correos electrónicos programados para este evento"
+msgstr "No hay correos programados para este evento"
 
 #: php/Plugin.php:575
 msgid ""
 "Email scheduling restored for this event. New emails will be scheduled "
 "automatically."
 msgstr ""
+"Programación de correos restaurada para este evento. Los nuevos correos se "
+"programarán automáticamente."
 
 #: php/Plugin.php:580
 msgid ""
 "Cancelled %d scheduled emails for this event. Automatic scheduling of "
 "future emails has been disabled."
 msgstr ""
+"%d correos programados cancelados para este evento. La programación automática "
+"de futuros correos ha sido deshabilitada."
 
 #: php/Plugin.php:650
 msgid "Registrations table created successfully!"
@@ -842,15 +869,11 @@ msgstr "¡Tabla de registros creada con éxito!"
 
 #: php/Plugin.php:652
 msgid "Failed to create table. Check database permissions."
-msgstr "Error al crear la tabla. Verifica los permisos de la base de datos."
+msgstr "Error al crear la tabla. Verifique los permisos de la base de datos."
 
 #: php/Plugin.php:670
 msgid "Invalid event ID"
 msgstr "ID de evento no válido"
-
-#: php/Plugin.php:676
-msgid "Tabela rejestracji nie istnieje"
-msgstr ""
 
 #: php/Plugin.php:702
 msgid "Email"
@@ -874,11 +897,11 @@ msgstr "No"
 
 #: php/Plugin.php:954
 msgid "Are you sure you want to delete this event?"
-msgstr "¿Estás seguro de que quieres eliminar este evento?"
+msgstr "¿Está seguro de que quiere eliminar este evento?"
 
 #: php/Plugin.php:955
 msgid "This event is in the past. Are you sure?"
-msgstr "Este evento está en el pasado. ¿Estás seguro?"
+msgstr "Este evento está en el pasado. ¿Está seguro?"
 
 #: php/Plugin.php:1007
 msgid "Registering..."
@@ -898,7 +921,7 @@ msgstr "¡Registrado!"
 
 #: php/Plugin.php:1013
 msgid "An error occurred. Please try again."
-msgstr "Ocurrió un error. Por favor, inténtalo de nuevo."
+msgstr "Ocurrió un error. Por favor, inténtelo de nuevo."
 
 #: php/Plugin.php:1014
 msgid "Invalid server response"
@@ -970,83 +993,87 @@ msgstr "Subido a este evento"
 
 #: php/PostTypes/EventPostType.php:167
 msgid "Please fill in the following required fields in settings:"
-msgstr "Por favor, completa los siguientes campos obligatorios en la configuración:"
+msgstr "Por favor, complete los siguientes campos requeridos en la configuración:"
 
 #: php/PostTypes/EventPostType.php:198
 msgid "Brevo API Key is required. Configure it in plugin settings."
-msgstr "Se requiere la clave API Brevo. Configúrala en la configuración del plugin."
+msgstr "La clave API Brevo es requerida. Configúrela en la configuración del plugin."
 
 #: php/PostTypes/EventPostType.php:203
 msgid "Default Brevo List is required. Configure it in plugin settings."
-msgstr "Se requiere la lista Brevo predeterminada. Configúrala en la configuración del plugin."
+msgstr "La lista Brevo predeterminada es requerida. Configúrela en la configuración del plugin."
 
 #: php/PostTypes/EventPostType.php:208
 msgid "Template After Registration is required. Configure it in plugin settings."
-msgstr "Se requiere la plantilla después del registro. Configúrala en la configuración del plugin."
+msgstr "La plantilla después del registro es requerida. Configúrela en la configuración del plugin."
 
 #: php/PostTypes/EventPostType.php:211
 msgid "Event Reminder Template is required. Configure it in plugin settings."
-msgstr "Se requiere la plantilla de recordatorio de evento. Configúrala en la configuración del plugin."
+msgstr "La plantilla de recordatorio de evento es requerida. Configúrela en la configuración del plugin."
 
 #: php/PostTypes/EventPostType.php:214
 msgid "Template After Event is required. Configure it in plugin settings."
-msgstr "Se requiere la plantilla después del evento. Configúrala en la configuración del plugin."
+msgstr "La plantilla después del evento es requerida. Configúrela en la configuración del plugin."
 
 #: php/PostTypes/EventPostType.php:219
 msgid "Global Post-Event Message is required. Configure it in plugin settings."
-msgstr "Se requiere el mensaje global post-evento. Configúralo en la configuración del plugin."
+msgstr "El mensaje global post-evento es requerido. Configúrelo en la configuración del plugin."
 
 #: php/PostTypes/EventPostType.php:224
 msgid ""
 "Global Registration Form (HTML) is required. Configure it in plugin "
 "settings."
 msgstr ""
+"El formulario de registro global (HTML) es requerido. Configúrelo en la "
+"configuración del plugin."
 
 #: php/PostTypes/EventPostType.php:230
 msgid ""
 "Registration Form (HTML) for this event is required. Fill in the field in "
 "Brevo Integration section."
 msgstr ""
+"El formulario de registro (HTML) para este evento es requerido. Complete el "
+"campo en la sección de Integración Brevo."
 
 #: php/PostTypes/EventPostType.php:283
 msgid "Event Categories"
-msgstr ""
+msgstr "Categorías de eventos"
 
 #: php/PostTypes/EventPostType.php:284
 msgid "Event Category"
-msgstr ""
+msgstr "Categoría de evento"
 
 #: php/PostTypes/EventPostType.php:285
 msgid "Search Event Categories"
-msgstr ""
+msgstr "Buscar categorías de eventos"
 
 #: php/PostTypes/EventPostType.php:286
 msgid "All Event Categories"
-msgstr ""
+msgstr "Todas las categorías de eventos"
 
 #: php/PostTypes/EventPostType.php:287
 msgid "Parent Event Category"
-msgstr ""
+msgstr "Categoría de evento principal"
 
 #: php/PostTypes/EventPostType.php:288
 msgid "Parent Event Category:"
-msgstr ""
+msgstr "Categoría de evento principal:"
 
 #: php/PostTypes/EventPostType.php:289
 msgid "Edit Event Category"
-msgstr ""
+msgstr "Editar categoría de evento"
 
 #: php/PostTypes/EventPostType.php:290
 msgid "Update Event Category"
-msgstr ""
+msgstr "Actualizar categoría de evento"
 
 #: php/PostTypes/EventPostType.php:291
 msgid "Add New Event Category"
-msgstr ""
+msgstr "Agregar nueva categoría de evento"
 
 #: php/PostTypes/EventPostType.php:292
 msgid "New Event Category Name"
-msgstr ""
+msgstr "Nuevo nombre de categoría de evento"
 
 #: php/PostTypes/EventPostType.php:293
 msgid "Categories"
@@ -1054,39 +1081,39 @@ msgstr "Categorías"
 
 #: php/PostTypes/EventPostType.php:313
 msgid "Event Tags"
-msgstr ""
+msgstr "Etiquetas de eventos"
 
 #: php/PostTypes/EventPostType.php:314
 msgid "Event Tag"
-msgstr ""
+msgstr "Etiqueta de evento"
 
 #: php/PostTypes/EventPostType.php:315
 msgid "Search Event Tags"
-msgstr ""
+msgstr "Buscar etiquetas de eventos"
 
 #: php/PostTypes/EventPostType.php:316
 msgid "Popular Event Tags"
-msgstr ""
+msgstr "Etiquetas de eventos populares"
 
 #: php/PostTypes/EventPostType.php:317
 msgid "All Event Tags"
-msgstr ""
+msgstr "Todas las etiquetas de eventos"
 
 #: php/PostTypes/EventPostType.php:318
 msgid "Edit Event Tag"
-msgstr ""
+msgstr "Editar etiqueta de evento"
 
 #: php/PostTypes/EventPostType.php:319
 msgid "Update Event Tag"
-msgstr ""
+msgstr "Actualizar etiqueta de evento"
 
 #: php/PostTypes/EventPostType.php:320
 msgid "Add New Event Tag"
-msgstr ""
+msgstr "Agregar nueva etiqueta de evento"
 
 #: php/PostTypes/EventPostType.php:321
 msgid "New Event Tag Name"
-msgstr ""
+msgstr "Nuevo nombre de etiqueta de evento"
 
 #: php/PostTypes/EventPostType.php:322
 msgid "Tags"
@@ -1094,11 +1121,11 @@ msgstr "Etiquetas"
 
 #: php/PostTypes/EventPostType.php:350
 msgid "Registrations"
-msgstr ""
+msgstr "Registros"
 
 #: php/PostTypes/EventPostType.php:392
 msgid "registrations"
-msgstr ""
+msgstr "registros"
 
 #: php/Repositories/RegistrationRepository.php:145
 msgid "User is already registered"
@@ -1120,15 +1147,15 @@ msgstr "Error al actualizar el registro"
 #: php/Repositories/ScheduledEmailRepository.php:40
 #: php/Repositories/ScheduledEmailRepository.php:79
 msgid "Scheduled emails table does not exist"
-msgstr "La tabla de correos electrónicos programados no existe"
+msgstr "La tabla de correos programados no existe"
 
 #: php/Repositories/ScheduledEmailRepository.php:61
 msgid "Failed to save scheduled email"
-msgstr "Error al guardar el correo electrónico programado"
+msgstr "Error al guardar el correo programado"
 
 #: php/Repositories/ScheduledEmailRepository.php:115
 msgid "Failed to update scheduled email"
-msgstr "Error al actualizar el correo electrónico programado"
+msgstr "Error al actualizar el correo programado"
 
 #: php/Scheduler/CronLogger.php:151
 msgid "Cron has never been executed"
@@ -1184,12 +1211,12 @@ msgstr "No se encontraron destinatarios en las listas configuradas"
 
 #: php/Scheduler/EmailScheduler.php:430
 msgid "All emails were not sent"
-msgstr "No se enviaron todos los correos electrónicos"
+msgstr "No se enviaron todos los correos"
 
 #: php/Scheduler/EmailScheduler.php:467 php/Scheduler/EmailScheduler.php:474
 #: php/Scheduler/EmailScheduler.php:766
 msgid "Sent %d out of %d emails"
-msgstr "%d correos electrónicos enviados de %d"
+msgstr "%d correos enviados de %d"
 
 #: php/Scheduler/EmailScheduler.php:564
 msgid "Failed to fetch contacts"
@@ -1197,7 +1224,7 @@ msgstr "Error al obtener contactos"
 
 #: php/Scheduler/EmailScheduler.php:762
 msgid "All %d emails were not sent"
-msgstr "No se enviaron todos los %d correos electrónicos"
+msgstr "No se enviaron todos los %d correos"
 
 #: php/Taxonomies/EventCategoryMeta.php:35
 #: php/Taxonomies/EventCategoryMeta.php:166
@@ -1238,3 +1265,51 @@ msgstr "App4You.dev"
 #. Author URI of the plugin/theme
 msgid "https://app4you.dev"
 msgstr "https://app4you.dev"
+
+#: templates/events/archive.twig
+msgid "Previous page"
+msgstr "Página anterior"
+
+#: templates/events/archive.twig
+msgid "Next page"
+msgstr "Página siguiente"
+
+#: templates/components/registration-thank-you.twig
+msgid "Thank you for registering!"
+msgstr "¡Gracias por registrarse!"
+
+#: templates/components/registration-thank-you.twig
+msgid "Add to Google Calendar"
+msgstr "Agregar a Google Calendar"
+
+#: templates/components/registration-thank-you.twig
+msgid "Add to Outlook"
+msgstr "Agregar a Outlook"
+
+#: templates/components/registration-thank-you.twig
+msgid "Download .ics"
+msgstr "Descargar .ics"
+
+#: templates/components/registration-thank-you.twig
+msgid "Confirmation email has been sent to:"
+msgstr "Se ha enviado un correo de confirmación a:"
+
+#: templates/components/registration-thank-you.twig
+msgid "Confirmation email has been sent."
+msgstr "Se ha enviado un correo de confirmación."
+
+#: templates/components/registration-thank-you.twig
+msgid "The event link will be sent to your registered email shortly before the event starts."
+msgstr "El enlace del evento se enviará a su correo registrado poco antes de que comience el evento."
+
+#: templates/events/single.twig
+msgid "This event has ended"
+msgstr "Este evento ha terminado"
+
+#: templates/events/single.twig
+msgid "Thank you for your interest. Check out our other upcoming events!"
+msgstr "¡Gracias por su interés! Descubra nuestros otros próximos eventos."
+
+#: templates/events/archive.twig templates/events/shortcode.twig
+msgid "No upcoming events."
+msgstr "No hay próximos eventos."
