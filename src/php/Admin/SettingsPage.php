@@ -275,7 +275,31 @@ class SettingsPage
     );
 
     // ============================================
-    // SEKCJA 4: Ustawienia wizualne
+    // SEKCJA 4: Permalink Settings
+    // ============================================
+    
+    add_settings_section(
+      'aio_events_permalink_section',
+      __('Permalink Settings', 'aio-event-solution'),
+      [self::class, 'render_permalink_section_description'],
+      'aio-events-settings'
+    );
+
+    add_settings_field(
+      'events_slug',
+      __('Events URL Slug', 'aio-event-solution'),
+      [self::class, 'render_slug_field'],
+      'aio-events-settings',
+      'aio_events_permalink_section',
+      [
+        'id' => 'events_slug',
+        'label_for' => 'events_slug',
+        'description' => __('URL slug for events (default: "events"). Change if conflicts with other plugins.', 'aio-event-solution'),
+      ]
+    );
+
+    // ============================================
+    // SEKCJA 5: Ustawienia wizualne
     // ============================================
     
     // General Settings Section
@@ -387,6 +411,19 @@ class SettingsPage
 
     if (isset($input['date_format'])) {
       $sanitized['date_format'] = sanitize_text_field($input['date_format']);
+    }
+
+    // Events slug - sanitize and set flag to flush rewrite rules
+    if (isset($input['events_slug'])) {
+      $old_settings = get_option('aio_events_settings', []);
+      $old_slug = $old_settings['events_slug'] ?? 'events';
+      $new_slug = sanitize_title($input['events_slug']);
+      $sanitized['events_slug'] = !empty($new_slug) ? $new_slug : 'events';
+      
+      // If slug changed, set flag to flush rewrite rules
+      if ($old_slug !== $sanitized['events_slug']) {
+        update_option('aio_events_flush_rewrite', true);
+      }
     }
 
     if (isset($input['primary_color'])) {
@@ -531,11 +568,11 @@ class SettingsPage
     $settings = get_option('aio_events_settings', []);
     $value = $settings[$args['id']] ?? '';
     echo '<div style="max-width: 800px;">';
-    wp_editor($value, $args['id'], [
-      'textarea_name' => 'aio_events_settings[' . $args['id'] . ']',
-      'textarea_rows' => 8,
-      'media_buttons' => true,
-      'teeny' => false,
+      wp_editor($value, $args['id'], [
+        'textarea_name' => 'aio_events_settings[' . $args['id'] . ']',
+        'textarea_rows' => 8,
+        'media_buttons' => true,
+        'teeny' => false,
       'tinymce' => ['toolbar1' => 'formatselect,bold,italic,underline,bullist,numlist,link,unlink,blockquote,alignleft,aligncenter,alignright,undo,redo'],
     ]);
     echo '<p class="description">' . esc_html($args['description']) . '</p></div>';
@@ -642,8 +679,8 @@ class SettingsPage
             r.html("<span style=color:#d63638>✗ "+d.data.message+"</span>");
             b.prop("disabled",false).text("' . esc_js(__('Save & Connect', 'aio-event-solution')) . '");
           }
+          });
         });
-      });
     });</script>';
   }
 
@@ -726,8 +763,41 @@ class SettingsPage
   {
     $nonce = wp_create_nonce('aio-events-admin');
     echo '<p>' . esc_html__('Configure error logging and notifications.', 'aio-event-solution') . '</p>';
-    echo '<div style="margin-top:15px;padding:15px;background:#f9f9f9;border:1px solid #ddd;border-radius:4px;"><strong>' . esc_html__('Manual Cron Execution', 'aio-event-solution') . '</strong><br><p class="description" style="margin:5px 0 10px;">' . esc_html__('Force the email scheduler to process pending emails now.', 'aio-event-solution') . '</p><button type="button" id="aio-force-cron-btn" class="button button-secondary">' . esc_html__('Force Run Cron Now', 'aio-event-solution') . '</button> <span id="aio-force-cron-result" style="margin-left:10px;"></span></div>';
-    echo '<script>jQuery(function($){$("#aio-force-cron-btn").on("click",function(){var b=$(this),r=$("#aio-force-cron-result");b.prop("disabled",true);r.text("⏳...");$.post(ajaxurl,{action:"aio_force_run_cron",nonce:"' . $nonce . '"},function(d){r.text((d&&d.success?"✅ ":"❌ ")+(d&&d.data&&d.data.message?d.data.message:""));b.prop("disabled",false);}).fail(function(){r.text("❌ Error");b.prop("disabled",false);});});});</script>';
+    
+    // Force Cron button
+    echo '<div style="margin-top:15px;padding:15px;background:#f9f9f9;border:1px solid #ddd;border-radius:4px;">';
+    echo '<strong>' . esc_html__('Manual Cron Execution', 'aio-event-solution') . '</strong><br>';
+    echo '<p class="description" style="margin:5px 0 10px;">' . esc_html__('Force the email scheduler to process pending emails now.', 'aio-event-solution') . '</p>';
+    echo '<button type="button" id="aio-force-cron-btn" class="button button-secondary">' . esc_html__('Force Run Cron Now', 'aio-event-solution') . '</button>';
+    echo '<span id="aio-force-cron-result" style="margin-left:10px;"></span>';
+    echo '</div>';
+    
+    // Check for Updates button
+    echo '<div style="margin-top:15px;padding:15px;background:#f9f9f9;border:1px solid #ddd;border-radius:4px;">';
+    echo '<strong>' . esc_html__('Plugin Updates', 'aio-event-solution') . '</strong><br>';
+    echo '<p class="description" style="margin:5px 0 10px;">' . esc_html__('Force check for plugin updates from GitHub.', 'aio-event-solution') . '</p>';
+    echo '<button type="button" id="aio-check-updates-btn" class="button button-secondary">' . esc_html__('Check for Updates', 'aio-event-solution') . '</button>';
+    echo '<span id="aio-check-updates-result" style="margin-left:10px;"></span>';
+    echo '</div>';
+    
+    echo '<script>jQuery(function($){
+      $("#aio-force-cron-btn").on("click",function(){
+        var b=$(this),r=$("#aio-force-cron-result");
+        b.prop("disabled",true);r.text("⏳...");
+        $.post(ajaxurl,{action:"aio_force_run_cron",nonce:"' . $nonce . '"},function(d){
+          r.text((d&&d.success?"✅ ":"❌ ")+(d&&d.data&&d.data.message?d.data.message:""));
+          b.prop("disabled",false);
+        }).fail(function(){r.text("❌ Error");b.prop("disabled",false);});
+      });
+      $("#aio-check-updates-btn").on("click",function(){
+        var b=$(this),r=$("#aio-check-updates-result");
+        b.prop("disabled",true);r.text("⏳...");
+        $.post(ajaxurl,{action:"aio_check_github_updates",nonce:"' . $nonce . '"},function(d){
+          r.html((d&&d.success?"✅ ":"❌ ")+(d&&d.data&&d.data.message?d.data.message:""));
+          b.prop("disabled",false);
+        }).fail(function(){r.text("❌ Error");b.prop("disabled",false);});
+      });
+    });</script>';
   }
 
   /**
@@ -767,6 +837,31 @@ class SettingsPage
   }
 
   /**
+   * Render permalink section description
+   */
+  public static function render_permalink_section_description()
+  {
+    echo '<p>' . esc_html__('Configure the URL structure for your events.', 'aio-event-solution') . '</p>';
+  }
+
+  /**
+   * Render slug field
+   */
+  public static function render_slug_field($args)
+  {
+    $settings = get_option('aio_events_settings', []);
+    $value = $settings[$args['id']] ?? 'events';
+    $site_url = home_url('/');
+    
+    echo '<div style="max-width:600px;">';
+    echo '<code style="background:#f0f0f1;padding:5px 10px;border-radius:3px;">' . esc_html($site_url) . '</code>';
+    echo '<input type="text" id="' . esc_attr($args['id']) . '" name="aio_events_settings[' . esc_attr($args['id']) . ']" value="' . esc_attr($value) . '" class="regular-text" style="width:150px;margin-left:-4px;" pattern="[a-z0-9-]+" placeholder="events">';
+    echo '<code style="background:#f0f0f1;padding:5px 10px;border-radius:3px;margin-left:-4px;">/event-name/</code>';
+    echo '<p class="description">' . esc_html($args['description']) . '</p>';
+    echo '</div>';
+  }
+
+  /**
    * Render settings page
    */
   public static function render_settings()
@@ -780,26 +875,26 @@ class SettingsPage
       $missing_fields[] = __('Brevo API Key', 'aio-event-solution');
     } else {
       // Other fields only required after API key is configured
-      if (empty($settings['default_brevo_list_id'])) {
-        $missing_fields[] = __('Default Brevo List', 'aio-event-solution');
-      }
-      if (empty($settings['email_template_after_registration'])) {
-        $missing_fields[] = __('Template After Registration', 'aio-event-solution');
-      }
-      if (empty($settings['email_template_before_event'])) {
-        $missing_fields[] = __('Event Reminder Template', 'aio-event-solution');
-      }
+    if (empty($settings['default_brevo_list_id'])) {
+      $missing_fields[] = __('Default Brevo List', 'aio-event-solution');
+    }
+    if (empty($settings['email_template_after_registration'])) {
+      $missing_fields[] = __('Template After Registration', 'aio-event-solution');
+    }
+    if (empty($settings['email_template_before_event'])) {
+      $missing_fields[] = __('Event Reminder Template', 'aio-event-solution');
+    }
       if (empty($settings['email_template_join_event'])) {
         $missing_fields[] = __('Event Join Template', 'aio-event-solution');
-      }
-      if (empty($settings['email_template_after_event'])) {
-        $missing_fields[] = __('Template After Event', 'aio-event-solution');
-      }
-      if (empty($settings['global_post_event_message'])) {
-        $missing_fields[] = __('Global Post-Event Message', 'aio-event-solution');
-      }
-      if (empty($settings['global_brevo_form_html'])) {
-        $missing_fields[] = __('Global Registration Form (HTML)', 'aio-event-solution');
+    }
+    if (empty($settings['email_template_after_event'])) {
+      $missing_fields[] = __('Template After Event', 'aio-event-solution');
+    }
+    if (empty($settings['global_post_event_message'])) {
+      $missing_fields[] = __('Global Post-Event Message', 'aio-event-solution');
+    }
+    if (empty($settings['global_brevo_form_html'])) {
+      $missing_fields[] = __('Global Registration Form (HTML)', 'aio-event-solution');
       }
     }
     

@@ -1,44 +1,46 @@
 {% extends "base.twig" %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 py-8">
-    <header class="mb-12 text-center">
-        <h1 class="text-4xl font-bold text-gray-900 mb-4">
-            {{ title }}
-        </h1>
-        {% if term.description %}
-        <div class="text-lg text-gray-600 max-w-2xl mx-auto">
-            {{ term.description }}
-        </div>
-        {% endif %}
-    </header>
-    
-    {% if posts %}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {% for event in posts %}
-            {% include 'components/event-card.twig' with {event: event} %}
-        {% endfor %}
-    </div>
-    
-    {% if pagination %}
-    <nav class="flex justify-center gap-4 mt-12">
-        {% if pagination.prev %}
-        <a href="{{ pagination.prev.link }}" class="px-6 py-3 rounded-lg font-semibold bg-white text-primary hover:bg-primary hover:text-white border-2 border-primary transition-all">
-            ← Poprzednia strona
-        </a>
-        {% endif %}
-        {% if pagination.next %}
-        <a href="{{ pagination.next.link }}" class="px-6 py-3 rounded-lg font-semibold bg-white text-primary hover:bg-primary hover:text-white border-2 border-primary transition-all">
-            Następna strona →
-        </a>
-        {% endif %}
-    </nav>
-    {% endif %}
-    
-    {% else %}
-    <div class="text-center py-16">
-        <p class="text-xl text-gray-500">{{ function('__', 'No upcoming events.', 'aio-event-solution') }}</p>
-    </div>
-    {% endif %}
-</div>
+	<div class="max-w-7xl mx-auto px-4 py-8">
+		<header class="mb-12 text-center">
+			<h1 class="text-4xl font-bold text-gray-900 mb-4">
+				{{ title }}
+			</h1>
+			{% if term.description %}
+				<div class="text-lg text-gray-600 max-w-2xl mx-auto">
+					{{ term.description }}
+				</div>
+			{% endif %}
+		</header>
+
+		{% if posts %}
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+				{% for event in posts %}
+					{% include 'components/event-card.twig' with {event: event} %}
+				{% endfor %}
+			</div>
+
+			{% if pagination %}
+				<nav class="flex justify-center gap-4 mt-12">
+					{% if pagination.prev %}
+						<a href="{{ pagination.prev.link }}" class="px-6 py-3 rounded-lg font-semibold bg-white text-primary hover:bg-primary hover:text-white border-2 border-primary transition-all">
+							←
+							{{ function('__', 'Previous page', 'aio-event-solution') }}
+						</a>
+					{% endif %}
+					{% if pagination.next %}
+						<a href="{{ pagination.next.link }}" class="px-6 py-3 rounded-lg font-semibold bg-white text-primary hover:bg-primary hover:text-white border-2 border-primary transition-all">
+							{{ function('__', 'Next page', 'aio-event-solution') }}
+							→
+						</a>
+					{% endif %}
+				</nav>
+			{% endif %}
+
+		{% else %}
+			<div class="text-center py-16">
+				<p class="text-xl text-gray-500">{{ function('__', 'No upcoming events.', 'aio-event-solution') }}</p>
+			</div>
+		{% endif %}
+	</div>
 {% endblock %}
