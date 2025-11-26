@@ -226,14 +226,20 @@ jQuery(document).ready(($) => {
 			if (form) {
 				clearInterval(checkForm);
 
+				// CRITICAL: Disable Brevo's own JavaScript by cloning the form
+				// This removes all event listeners attached by Brevo
+				const formClone = form.cloneNode(true);
+				form.parentNode.replaceChild(formClone, form);
+				const cleanForm = formClone;
+
 				// Auto-fill country field
-				autoFillCountry(form);
+				autoFillCountry(cleanForm);
 
 				// Hide country field (auto-filled, no need to show)
-				hideCountryField(form);
+				hideCountryField(cleanForm);
 
 				// Get event ID from wrapper
-				const wrapper = form.closest("#aio-events-brevo-form-wrapper");
+				const wrapper = cleanForm.closest("#aio-events-brevo-form-wrapper");
 				const eventId = wrapper ? wrapper.dataset.eventId : null;
 
 				if (!eventId) {
@@ -243,11 +249,12 @@ jQuery(document).ready(($) => {
 
 				const registerUrl = aioEvents.restUrl + "register";
 
-				// Intercept form submission
-				form.addEventListener("submit", function (e) {
+				// Intercept form submission (now clean form without Brevo listeners)
+				cleanForm.addEventListener("submit", (e) => {
 					e.preventDefault();
+					e.stopPropagation();
 
-					const $form = $(this);
+					const $form = $(cleanForm);
 					const $wrapper = $(wrapper);
 					const $formContainer = $wrapper.find(
 						".aio-events-brevo-form-container",
@@ -290,7 +297,7 @@ jQuery(document).ready(($) => {
 
 					// Collect form data
 					const formData = {};
-					const formElements = form.elements;
+					const formElements = cleanForm.elements;
 					for (let i = 0; i < formElements.length; i++) {
 						const element = formElements[i];
 						if (element.name && element.name !== "email_address_check") {
@@ -314,7 +321,7 @@ jQuery(document).ready(($) => {
 							form_data: formData,
 						}),
 						success: (response) => {
-							if (response.success || response.brevo_success !== false) {
+							if (response.success) {
 								// Hide form container
 								$formContainer.slideUp(300, function () {
 									$(this).hide();
@@ -378,33 +385,14 @@ jQuery(document).ready(($) => {
 				});
 
 				// Change form action to our endpoint (fallback for direct submission)
-				form.setAttribute("action", registerUrl + "?event_id=" + eventId);
+				cleanForm.setAttribute("action", registerUrl + "?event_id=" + eventId);
 
-				// Use MutationObserver to catch if Brevo changes the action back
-				const observer = new MutationObserver((mutations) => {
-					mutations.forEach((mutation) => {
-						if (mutation.type === "attributes") {
-							if (
-								mutation.target === form &&
-								mutation.attributeName === "action"
-							) {
-								const currentAction = form.getAttribute("action");
-								if (currentAction !== registerUrl + "?event_id=" + eventId) {
-									form.setAttribute(
-										"action",
-										registerUrl + "?event_id=" + eventId,
-									);
-								}
-							}
-						}
-					});
-				});
+				// Remove any Brevo-related attributes that might cause issues
+				cleanForm.removeAttribute("data-sib-form");
 
-				// Observe form for action changes only
-				observer.observe(form, {
-					attributes: true,
-					attributeFilter: ["action"],
-				});
+				console.log(
+					"[AIO Events] Form intercepted and cleaned from Brevo listeners",
+				);
 			}
 		}, 100);
 
