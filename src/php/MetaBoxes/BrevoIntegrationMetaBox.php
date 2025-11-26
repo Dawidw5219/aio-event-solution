@@ -34,7 +34,7 @@ class BrevoIntegrationMetaBox
       [self::class, 'render'],
       'aio_event',
       'normal',
-      'core' // Appears after Event Details (high), before Event Registrations (low)
+      'high'
     );
   }
 

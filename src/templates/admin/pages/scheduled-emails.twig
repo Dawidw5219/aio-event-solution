@@ -1,0 +1,106 @@
+<div class="wrap">
+	<h1>{{ function('__', 'Scheduled Emails', 'aio-event-solution') }}</h1>
+
+	<div class="tablenav top">
+		<div class="alignleft actions">
+			<label for="status-filter" class="screen-reader-text">{{ function('__', 'Filter by status', 'aio-event-solution') }}</label>
+			<select name="status" id="status-filter">
+				<option value="">{{ function('__', 'All statuses', 'aio-event-solution') }}</option>
+				<option value="pending" {{ status_filter == 'pending' ? 'selected' : '' }}>{{ function('__', 'Pending', 'aio-event-solution') }}</option>
+				<option value="scheduled" {{ status_filter == 'scheduled' ? 'selected' : '' }}>{{ function('__', 'Scheduled', 'aio-event-solution') }}</option>
+				<option value="cancelled" {{ status_filter == 'cancelled' ? 'selected' : '' }}>{{ function('__', 'Cancelled', 'aio-event-solution') }}</option>
+				<option value="failed" {{ status_filter == 'failed' ? 'selected' : '' }}>{{ function('__', 'Error', 'aio-event-solution') }}</option>
+			</select>
+			<button type="button" class="button" onclick="window.location.href = '?page=aio-events-scheduled-emails&status=' + document.getElementById('status-filter').value">
+				{{ function('__', 'Filter', 'aio-event-solution') }}
+			</button>
+		</div>
+
+		{% if total_pages > 1 %}
+			<div class="tablenav-pages">
+				<span class="displaying-num">{{ function('__', '%d items', 'aio-event-solution')|format(total_count) }}</span>
+				{{ pagination|raw }}
+			</div>
+		{% endif %}
+	</div>
+
+	<table class="wp-list-table widefat fixed striped">
+		<thead>
+			<tr>
+				<th scope="col" class="manage-column column-event">{{ function('__', 'Event', 'aio-event-solution') }}</th>
+				<th scope="col" class="manage-column column-date">{{ function('__', 'Event Date', 'aio-event-solution') }}</th>
+				<th scope="col" class="manage-column column-scheduled">{{ function('__', 'Scheduled For', 'aio-event-solution') }}</th>
+				<th scope="col" class="manage-column column-status">{{ function('__', 'Status', 'aio-event-solution') }}</th>
+				<th scope="col" class="manage-column column-message-id">{{ function('__', 'Brevo Message ID', 'aio-event-solution') }}</th>
+				<th scope="col" class="manage-column column-created">{{ function('__', 'Created', 'aio-event-solution') }}</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% if scheduled_emails is empty %}
+				<tr>
+					<td colspan="6" style="text-align: center; padding: 20px;">
+						{{ function('__', 'No scheduled emails', 'aio-event-solution') }}
+					</td>
+				</tr>
+			{% else %}
+				{% for email in scheduled_emails %}
+					<tr>
+						<td>
+							<strong>
+								<a href="{{ function('get_edit_post_link', email.event_id) }}">
+									{{ email.event_title }}
+								</a>
+							</strong>
+						</td>
+						<td>{{ email.event_date ? function('date_i18n', date_format, email.event_date|date('U')) : '—' }}</td>
+						<td>{{ email.scheduled_for ? function('date_i18n', datetime_format, email.scheduled_for|date('U')) : '—' }}</td>
+						<td>
+							{% set status_labels = {
+								'pending': function('__', 'Pending', 'aio-event-solution'),
+								'scheduled': function('__', 'Scheduled', 'aio-event-solution'),
+								'cancelled': function('__', 'Cancelled', 'aio-event-solution'),
+								'failed': function('__', 'Error', 'aio-event-solution'),
+								'sent': function('__', 'Sent', 'aio-event-solution')
+							} %}
+							<span class="status-{{ email.status }}">
+								{{ status_labels[email.status] ?? email.status }}
+							</span>
+							{% if email.status == 'failed' and email.error_message %}
+								<br>
+								<small style="color: #d63638;">{{ email.error_message }}</small>
+							{% endif %}
+						</td>
+						<td>
+							{% if email.brevo_message_id %}
+								<code>{{ email.brevo_message_id }}</code>
+							{% else %}
+								—
+							{% endif %}
+						</td>
+						<td>{{ email.created_at ? function('date_i18n', datetime_format, email.created_at|date('U')) : '—' }}</td>
+					</tr>
+				{% endfor %}
+			{% endif %}
+		</tbody>
+	</table>
+</div>
+
+<style>
+	.status-pending {
+		color: #dba617;
+	}
+	.status-scheduled {
+		color: #00a32a;
+	}
+	.status-cancelled {
+		color: #646970;
+		text-decoration: line-through;
+	}
+	.status-failed {
+		color: #d63638;
+		font-weight: bold;
+	}
+	.status-sent {
+		color: #2271b1;
+	}
+</style>

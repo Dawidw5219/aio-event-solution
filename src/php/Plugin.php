@@ -47,6 +47,9 @@ class Plugin
     // Register helper function for UTC conversion
     add_action('init', [$this, 'register_helper_functions']);
 
+    // Register custom Twig functions
+    add_filter('timber/twig', [$this, 'add_twig_functions']);
+
     // Initialize GitHub updater for private repo updates
     $this->init_github_updater();
 
@@ -146,6 +149,22 @@ class Plugin
   }
 
   /**
+   * Add custom Twig functions for templates
+   */
+  public function add_twig_functions($twig)
+  {
+    // Add email template selector function
+    $twig->addFunction(new \Twig\TwigFunction('aio_render_email_template_selector', function ($args) {
+      require_once AIO_EVENTS_PATH . 'php/Helpers/EmailTemplateSelector.php';
+      ob_start();
+      \AIOEvents\Helpers\EmailTemplateSelector::render($args);
+      return ob_get_clean();
+    }, ['is_safe' => ['html']]));
+
+    return $twig;
+  }
+
+  /**
    * Initialize GitHub updater
    * Repo is defined in plugin header: GitHub URI: owner/repo
    */
@@ -192,7 +211,7 @@ class Plugin
 
     // Add AJAX handlers for admin
     add_action('wp_ajax_aio_test_brevo_connection', [$this, 'ajax_test_brevo_connection']);
-    add_action('wp_ajax_aio_create_registrations_table', [$this, 'ajax_create_registrations_table']);
+    add_action('wp_ajax_aio_save_brevo_key', [$this, 'ajax_save_brevo_key']);
     add_action('wp_ajax_aio_cancel_scheduled_emails', [$this, 'ajax_cancel_scheduled_emails']);
     add_action('wp_ajax_aio_force_run_cron', [$this, 'ajax_force_run_cron']);
     add_action('wp_ajax_aio_cancel_event_emails', [$this, 'ajax_cancel_event_emails']);
@@ -322,6 +341,45 @@ class Plugin
     wp_send_json_success([
       'message' => sprintf(
         __('Connected successfully! Account: %s', 'aio-event-solution'),
+        $result['email'] ?? 'Unknown'
+      ),
+    ]);
+  }
+
+  /**
+   * AJAX handler to save Brevo API key and test connection
+   */
+  public function ajax_save_brevo_key()
+  {
+    check_ajax_referer('aio_save_brevo_key', 'nonce');
+
+    if (!current_user_can('manage_options')) {
+      wp_send_json_error(['message' => __('Permission denied', 'aio-event-solution')]);
+    }
+
+    $api_key = sanitize_text_field($_POST['api_key'] ?? '');
+
+    if (empty($api_key)) {
+      wp_send_json_error(['message' => __('API key is required', 'aio-event-solution')]);
+    }
+
+    // Test connection first
+    require_once AIO_EVENTS_PATH . 'php/Integrations/BrevoAPI.php';
+    $brevo = new \AIOEvents\Integrations\BrevoAPI($api_key);
+    $result = $brevo->test_connection();
+
+    if (is_wp_error($result)) {
+      wp_send_json_error(['message' => $result->get_error_message()]);
+    }
+
+    // Connection OK - save the key
+    $settings = get_option('aio_events_settings', []);
+    $settings['brevo_api_key'] = $api_key;
+    update_option('aio_events_settings', $settings);
+
+    wp_send_json_success([
+      'message' => sprintf(
+        __('Connected! Account: %s. Reloading...', 'aio-event-solution'),
         $result['email'] ?? 'Unknown'
       ),
     ]);
@@ -575,67 +633,6 @@ class Plugin
   }
 
   /**
-   * AJAX handler to create registrations table
-   */
-  public function ajax_create_registrations_table()
-  {
-    check_ajax_referer('aio_create_table', 'nonce');
-
-    if (!current_user_can('manage_options')) {
-      wp_send_json_error(['message' => __('Permission denied', 'aio-event-solution')]);
-    }
-
-    global $wpdb;
-    $charset_collate = $wpdb->get_charset_collate();
-    $table_name = $wpdb->prefix . 'aio_event_registrations';
-
-    $sql = "CREATE TABLE IF NOT EXISTS $table_name (
-      id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-      event_id bigint(20) unsigned NOT NULL,
-      name varchar(255) NOT NULL,
-      email varchar(255) NOT NULL,
-      phone varchar(50) DEFAULT NULL,
-      registered_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
-      brevo_added tinyint(1) DEFAULT 0 NOT NULL,
-      join_token varchar(255) DEFAULT NULL,
-      clicked_join_link tinyint(1) DEFAULT 0 NOT NULL,
-      PRIMARY KEY  (id),
-      KEY event_id (event_id),
-      KEY email (email),
-      KEY join_token (join_token)
-    ) $charset_collate;";
-
-    require_once ABSPATH . 'wp-admin/php/upgrade.php';
-    dbDelta($sql);
-
-    // Add join_token column if it doesn't exist (migration for existing tables)
-    $column_exists = $wpdb->get_results($wpdb->prepare(
-      "SHOW COLUMNS FROM $table_name LIKE %s",
-      'join_token'
-    ));
-    if (empty($column_exists)) {
-      $wpdb->query("ALTER TABLE $table_name ADD COLUMN join_token varchar(255) DEFAULT NULL");
-      $wpdb->query("ALTER TABLE $table_name ADD INDEX join_token (join_token)");
-    }
-
-    // Add clicked_join_link column if it doesn't exist (migration for existing tables)
-    $clicked_column_exists = $wpdb->get_results($wpdb->prepare(
-      "SHOW COLUMNS FROM $table_name LIKE %s",
-      'clicked_join_link'
-    ));
-    if (empty($clicked_column_exists)) {
-      $wpdb->query("ALTER TABLE $table_name ADD COLUMN clicked_join_link tinyint(1) DEFAULT 0 NOT NULL");
-    }
-
-    // Check if table was created
-    if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name) {
-      wp_send_json_success(['message' => __('Registrations table created successfully!', 'aio-event-solution')]);
-    } else {
-      wp_send_json_error(['message' => __('Failed to create table. Check database permissions.', 'aio-event-solution')]);
-    }
-  }
-
-  /**
    * AJAX handler to export registrations to CSV
    */
   public function ajax_export_registrations_csv()
@@ -715,12 +712,14 @@ class Plugin
    */
   public function register_admin_pages()
   {
-    SettingsPage::register();
     require_once AIO_EVENTS_PATH . 'php/Admin/ScheduledEmailsPage.php';
     \AIOEvents\Admin\ScheduledEmailsPage::register();
 
     require_once AIO_EVENTS_PATH . 'php/Admin/CronStatusPage.php';
     \AIOEvents\Admin\CronStatusPage::register();
+
+    // Settings as last menu item
+    SettingsPage::register();
   }
 
   /**
@@ -861,8 +860,8 @@ class Plugin
       }
     }
 
-    // Archive only for taxonomies (categories and tags), not for post type archive
-    if (is_tax('aio_event_category') || is_tax('aio_event_tag')) {
+    // Archive only for category taxonomy, not for post type archive
+    if (is_tax('aio_event_category')) {
       $plugin_template = AIO_EVENTS_PATH . 'php/Frontend/archive-aio_event.php';
       if (file_exists($plugin_template)) {
         return $plugin_template;

@@ -1,0 +1,104 @@
+<div class="wrap">
+	<h1>{{ page_title }}</h1>
+
+	{% if required_notice %}
+		<div class="notice notice-error is-dismissible" style="border-left-color: #d63638; margin: 20px 0;">
+			<p>
+				<strong>{{ function('__', 'Cannot add event!', 'aio-event-solution') }}</strong>
+			</p>
+			<p>{{ required_notice }}</p>
+			{% if missing_fields|length > 0 %}
+				<ul style="margin-left: 20px; margin-top: 10px;">
+					{% for field in missing_fields %}
+						<li>
+							<strong>{{ field }}</strong>
+						</li>
+					{% endfor %}
+				</ul>
+			{% endif %}
+		</div>
+	{% endif %}
+
+	<style>
+		.aio-events-required-field-missing {
+			border: 1px solid #d63638 !important;
+			box-shadow: 0 0 0 1px #d63638 !important;
+		}
+		.aio-events-required-field-error {
+			color: #d63638;
+			font-size: 12px;
+			margin-top: 5px;
+			font-weight: 600;
+		}
+	</style>
+
+	<script>
+		jQuery(document).ready(function ($) {
+{% if missing_fields|length > 0 %}
+var missingFields = {{ missing_fields|json_encode|raw }};
+var fieldMapping = {
+'{{ function('__', 'Brevo API Key', 'aio-event-solution') }}': ['brevo_api_key'],
+'{{ function('__', 'Default Brevo List', 'aio-event-solution') }}': ['default_brevo_list_id'],
+'{{ function('__', 'Template After Registration', 'aio-event-solution') }}': [
+'template-selector-email_template_after_registration', 'email_template_after_registration'
+],
+'{{ function('__', 'Event Reminder Template', 'aio-event-solution') }}': [
+'template-selector-email_template_before_event', 'email_template_before_event'
+],
+'{{ function('__', 'Event Join Template', 'aio-event-solution') }}': [
+'template-selector-email_template_join_event', 'email_template_join_event'
+],
+'{{ function('__', 'Template After Event', 'aio-event-solution') }}': [
+'template-selector-email_template_after_event', 'email_template_after_event'
+],
+'{{ function('__', 'Global Post-Event Message', 'aio-event-solution') }}': ['global_post_event_message'],
+'{{ function('__', 'Global Registration Form (HTML)', 'aio-event-solution') }}': ['global_brevo_form_html']
+};
+
+missingFields.forEach(function (fieldName) {
+var fieldIds = fieldMapping[fieldName];
+if (fieldIds && fieldIds.length > 0) {
+var $field = null;
+// Try each possible ID
+for (var i = 0; i < fieldIds.length; i++) {
+$field = $('#' + fieldIds[i]);
+if ($field.length > 0) {
+break;
+}
+}
+
+if ($field && $field.length) {
+$field.addClass('aio-events-required-field-missing');
+var $errorMsg = $('<span class="aio-events-required-field-error">      {{ function('__', 'This field is required', 'aio-event-solution') }}</span>');
+
+// Find parent td or div to append error message
+var $container = $field.closest('td');
+if ($container.length === 0) {
+$container = $field.closest('div');
+}
+if ($container.length > 0) {
+$container.append($errorMsg);
+} else {
+$field.after($errorMsg);
+}
+
+// Scroll to first missing field
+if (missingFields.indexOf(fieldName) === 0) {
+setTimeout(function () {
+$('html, body').animate({
+scrollTop: $field.offset().top - 100
+}, 500);
+}, 100);
+}
+}
+}
+});{% endif %}
+});
+	</script>
+
+	<form method="post" action="options.php">
+		{{ function('settings_fields', 'aio_events_settings_group') }}
+		{{ function('do_settings_sections', page_slug) }}
+		{{ function('submit_button') }}
+	</form>
+</div>
