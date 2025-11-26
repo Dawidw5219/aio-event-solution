@@ -156,41 +156,6 @@ class BrevoWebhookController
       ], 200);
     }
 
-    // Extract Brevo form action URL from HTML
-    preg_match('/action="([^"]+)"/', $brevo_form_embed, $matches);
-    $brevo_action_url = $matches[1] ?? '';
-
-    if (empty($brevo_action_url)) {
-      return new \WP_Error('no_brevo_url', __('Brevo form URL not found', 'aio-event-solution'), ['status' => 400]);
-    }
-
-    // Prepare data for Brevo (all form fields) - trim all values
-    $brevo_post_data = [];
-    foreach ($form_data as $key => $value) {
-      if ($key !== 'email_address_check') { // Skip honeypot
-        // Trim all values to avoid errors from trailing/leading spaces
-        $brevo_post_data[$key] = is_string($value) ? trim($value) : $value;
-      }
-    }
-
-    // Submit to Brevo via proxy (only if not already registered)
-    $brevo_response = wp_remote_post($brevo_action_url, [
-      'body' => $brevo_post_data,
-      'timeout' => 30,
-      'headers' => [
-        'Content-Type' => 'application/x-www-form-urlencoded',
-      ],
-      'sslverify' => true,
-    ]);
-
-    // Check if Brevo request was successful
-    $brevo_success = false;
-    if (!is_wp_error($brevo_response)) {
-      $status_code = wp_remote_retrieve_response_code($brevo_response);
-      // Brevo typically returns 302 redirect or 200 on success
-      $brevo_success = ($status_code >= 200 && $status_code < 400);
-    }
-
     // Find first name (case-insensitive) - already trimmed
     $first_name = '';
     foreach (['firstname', 'first_name', 'fname', 'name'] as $key) {
@@ -215,21 +180,39 @@ class BrevoWebhookController
       $name = $email;
     }
 
-    // Get Plugin instance to use save_registration_data method
-    $plugin = \AIOEvents\Plugin::instance();
+    // Build Brevo attributes from form data
+    // Map form fields to Brevo attribute names (uppercase)
+    $brevo_attributes = [];
+    foreach ($form_data as $key => $value) {
+      // Skip internal fields
+      if (in_array(strtolower($key), ['email', 'e-mail', 'mail', 'email_address_check', 'locale'], true)) {
+        continue;
+      }
+      
+      // Convert key to uppercase for Brevo
+      $brevo_key = strtoupper(str_replace(['[]', '-'], ['', '_'], $key));
+      
+      // Handle arrays (checkboxes) - join with comma
+      if (is_array($value)) {
+        $brevo_attributes[$brevo_key] = implode(', ', array_filter($value));
+      } else {
+        $trimmed = is_string($value) ? trim($value) : $value;
+        if (!empty($trimmed)) {
+          $brevo_attributes[$brevo_key] = $trimmed;
+        }
+      }
+    }
 
-    // Save registration to database (even if Brevo failed, we want to track it)
-    // Phone not collected as it's not in our forms
-    $result = $plugin->save_registration_data($event_id, $email, $name, '', $brevo_success);
+    // Save registration to database and add to Brevo list via API
+    require_once AIO_EVENTS_PATH . 'php/Services/RegistrationService.php';
+    $result = \AIOEvents\Services\RegistrationService::register($event_id, $email, $name, '', $brevo_attributes);
 
     if (is_wp_error($result)) {
       return new \WP_Error('db_error', $result->get_error_message(), ['status' => 500]);
     }
 
     // Return success response
-    $message = $brevo_success
-      ? __('Registration completed successfully!', 'aio-event-solution')
-      : __('Registration saved, but there was a problem sending to Brevo', 'aio-event-solution');
+    $message = __('Registration completed successfully!', 'aio-event-solution');
 
     // If form-data submission (direct form submit), return HTML redirect instead of JSON
     if (!$is_json) {
@@ -241,7 +224,6 @@ class BrevoWebhookController
 
     return new \WP_REST_Response([
       'success' => true,
-      'brevo_success' => $brevo_success,
       'message' => $message,
       'email' => $email,
     ], 200);
