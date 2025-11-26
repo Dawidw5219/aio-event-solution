@@ -44,6 +44,10 @@ class IcsGenerator
     // Generate unique ID
     $uid = uniqid('aio-events-', true) . '@' . wp_parse_url(home_url(), PHP_URL_HOST);
 
+    // Get site name for organizer
+    $site_name = self::escape_ics_text(get_bloginfo('name'));
+    $site_url = home_url();
+
     $ics_lines = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
@@ -55,6 +59,7 @@ class IcsGenerator
       'DTEND:' . $end_utc,
       'DTSTAMP:' . $created_utc,
       'UID:' . $uid,
+      'ORGANIZER;CN=' . $site_name . ':' . $site_url,
       'SUMMARY:' . $title,
     ];
 
