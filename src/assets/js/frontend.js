@@ -222,7 +222,7 @@ jQuery(document).ready(($) => {
 		const checkForm = setInterval(() => {
 			const form = document.querySelector("#sib-form");
 			if (!form) return;
-			
+
 			clearInterval(checkForm);
 
 			// Auto-fill and hide country field
@@ -245,18 +245,24 @@ jQuery(document).ready(($) => {
 
 				const $form = $(form);
 				const $wrapper = $(wrapper);
-				const $submitBtn = $form.find('button[type="submit"], input[type="submit"]');
-				const $formContainer = $wrapper.find(".aio-events-brevo-form-container");
-				const $successMessage = $wrapper.find(".aio-events-registration-success");
+				const $submitBtn = $form.find(
+					'button[type="submit"], input[type="submit"]',
+				);
+				const $formContainer = $wrapper.find(
+					".aio-events-brevo-form-container",
+				);
+				const $successMessage = $wrapper.find(
+					".aio-events-registration-success",
+				);
 				const $errorMessage = $wrapper.find(".aio-events-registration-error");
 
 				// Collect form data using FormData (handles arrays correctly)
 				const formData = new FormData(form);
 				const data = {};
-				
+
 				for (const [key, value] of formData.entries()) {
 					if (key === "email_address_check") continue;
-					
+
 					// Handle array fields (checkboxes with [])
 					if (key.endsWith("[]")) {
 						if (!data[key]) data[key] = [];
@@ -271,11 +277,15 @@ jQuery(document).ready(($) => {
 				// Show loading state
 				$errorMessage.hide();
 				const originalBtnHtml = $submitBtn.html();
-				$submitBtn.prop("disabled", true).html('<span class="aio-spinner"></span>');
+				$submitBtn
+					.prop("disabled", true)
+					.html('<span class="aio-spinner"></span>');
 
 				// Add spinner CSS if not exists
 				if (!document.getElementById("aio-spinner-style")) {
-					$("head").append('<style id="aio-spinner-style">.aio-spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:aio-spin 0.8s linear infinite}@keyframes aio-spin{to{transform:rotate(360deg)}}</style>');
+					$("head").append(
+						'<style id="aio-spinner-style">.aio-spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:aio-spin 0.8s linear infinite}@keyframes aio-spin{to{transform:rotate(360deg)}}</style>',
+					);
 				}
 
 				// Send to our API
@@ -283,24 +293,34 @@ jQuery(document).ready(($) => {
 					url: aioEvents.restUrl + "register?event_id=" + eventId,
 					type: "POST",
 					contentType: "application/json",
-					data: JSON.stringify({ event_id: parseInt(eventId), form_data: data }),
+					data: JSON.stringify({
+						event_id: parseInt(eventId),
+						form_data: data,
+					}),
 					success: (response) => {
 						if (response.success || response.already_registered) {
 							// Show success
 							$formContainer.slideUp(300);
-							
+
 							const email = data.EMAIL || data.email || "";
 							if (email) {
-								$successMessage.find(".aio-events-success-email-value").text(email.trim());
+								$successMessage
+									.find(".aio-events-success-email-value")
+									.text(email.trim());
 							} else {
 								$successMessage.find(".aio-events-success-email").hide();
 							}
-							
+
 							$successMessage.slideDown(300);
-							$("html, body").animate({ scrollTop: $successMessage.offset().top - 100 }, 500);
+							$("html, body").animate(
+								{ scrollTop: $successMessage.offset().top - 100 },
+								500,
+							);
 						} else {
 							// Show error
-							$errorMessage.find(".aio-events-error-message-text").text(response.message || "Registration failed");
+							$errorMessage
+								.find(".aio-events-error-message-text")
+								.text(response.message || "Registration failed");
 							$errorMessage.slideDown(300);
 							$submitBtn.prop("disabled", false).html(originalBtnHtml);
 						}
