@@ -15,16 +15,6 @@ class EventPostType
     // Block access to add new event if required settings are missing
     add_action('admin_init', [self::class, 'check_required_settings_before_add']);
 
-    // Flush rewrite rules if slug was changed
-    if (get_option('aio_events_flush_rewrite')) {
-      delete_option('aio_events_flush_rewrite');
-      add_action('init', 'flush_rewrite_rules', 99);
-    }
-
-    // Get slug from settings
-    $settings = get_option('aio_events_settings', []);
-    $slug = $settings['events_slug'] ?? 'events';
-
     $labels = [
       'name' => __('Events', 'aio-event-solution'),
       'singular_name' => __('Event', 'aio-event-solution'),
@@ -54,7 +44,7 @@ class EventPostType
       'show_in_admin_bar' => true,
       'show_in_rest' => false, // Disable Gutenberg - use classic editor
       'query_var' => true,
-      'rewrite' => ['slug' => $slug],
+      'rewrite' => ['slug' => 'events'],
       'capability_type' => 'post',
       'has_archive' => false,
       'hierarchical' => false,
@@ -74,9 +64,6 @@ class EventPostType
 
     // Register Event Categories
     self::register_event_category();
-
-    // Register Event Tags
-    self::register_event_tags();
 
     // Disable Gutenberg editor for this post type
     add_filter('use_block_editor_for_post_type', [self::class, 'disable_gutenberg'], 10, 2);
@@ -313,36 +300,6 @@ class EventPostType
       'rewrite' => ['slug' => 'event-category'],
     ]);
   }
-
-  /**
-   * Register Event Tags Taxonomy
-   */
-  private static function register_event_tags()
-  {
-    $labels = [
-      'name' => __('Event Tags', 'aio-event-solution'),
-      'singular_name' => __('Event Tag', 'aio-event-solution'),
-      'search_items' => __('Search Event Tags', 'aio-event-solution'),
-      'popular_items' => __('Popular Event Tags', 'aio-event-solution'),
-      'all_items' => __('All Event Tags', 'aio-event-solution'),
-      'edit_item' => __('Edit Event Tag', 'aio-event-solution'),
-      'update_item' => __('Update Event Tag', 'aio-event-solution'),
-      'add_new_item' => __('Add New Event Tag', 'aio-event-solution'),
-      'new_item_name' => __('New Event Tag Name', 'aio-event-solution'),
-      'menu_name' => __('Tags', 'aio-event-solution'),
-    ];
-
-    register_taxonomy('aio_event_tag', 'aio_event', [
-      'hierarchical' => false,
-      'labels' => $labels,
-      'show_ui' => true,
-      'show_in_rest' => true,
-      'show_admin_column' => true,
-      'query_var' => true,
-      'rewrite' => ['slug' => 'event-tag'],
-    ]);
-  }
-
 
   /**
    * Add custom columns

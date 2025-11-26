@@ -1,0 +1,211 @@
+<div class="wrap">
+	<h1>{{ function('__', 'Cron Status', 'aio-event-solution') }}</h1>
+
+	{% if notice %}
+		<div class="notice notice-success is-dismissible">
+			<p>{{ notice }}</p>
+		</div>
+	{% endif %}
+
+	<div style="margin: 20px 0;">
+		<form method="post" style="display: inline-block;">
+			{{ function('wp_nonce_field', 'aio_trigger_cron', '_wpnonce', true, false)|raw }}
+			<button type="submit" name="trigger_cron" class="button button-primary">
+				{{ function('__', '▶ Run Cron Now', 'aio-event-solution') }}
+			</button>
+		</form>
+		<span class="description" style="margin-left: 10px;">
+			{{ function('__', 'Manually trigger the email scheduler cron job', 'aio-event-solution') }}
+		</span>
+	</div>
+
+	<div class="card" style="max-width: 800px;">
+		<h2>{{ function('__', 'WordPress Cron Status', 'aio-event-solution') }}</h2>
+
+		{% if cron_status.status == 'not_scheduled' %}
+			<div class="notice notice-error inline">
+				<p>
+					<strong>{{ function('__', '⚠️ Warning:', 'aio-event-solution') }}</strong>
+					{{ cron_status.message }}</p>
+			</div>
+		{% elseif cron_status.status == 'overdue' %}
+			<div class="notice notice-warning inline">
+				<p>
+					<strong>{{ function('__', '⚠️ Warning:', 'aio-event-solution') }}</strong>
+					{{ cron_status.message }}</p>
+			</div>
+		{% else %}
+			<div class="notice notice-success inline">
+				<p>
+					<strong>✓
+						{{ function('__', 'Scheduled:', 'aio-event-solution') }}</strong>
+					{{ cron_status.message }}</p>
+				{% if cron_status.next_run %}
+					<p>{{ function('__', 'Next run:', 'aio-event-solution') }}
+						<strong>{{ cron_status.next_run }}</strong>
+					</p>
+				{% endif %}
+			</div>
+		{% endif %}
+	</div>
+
+	<div class="card" style="max-width: 800px; margin-top: 20px;">
+		<h2>{{ function('__', 'Execution Status', 'aio-event-solution') }}</h2>
+
+		{% if should_run.status == 'never_run' %}
+			<div class="notice notice-error inline">
+				<p>
+					<strong>{{ function('__', '⚠️ Warning:', 'aio-event-solution') }}</strong>
+					{{ should_run.message }}</p>
+			</div>
+		{% elseif should_run.status == 'missed' %}
+			<div class="notice notice-error inline">
+				<p>
+					<strong>{{ function('__', '⚠️ Critical:', 'aio-event-solution') }}</strong>
+					{{ should_run.message }}</p>
+				<p>{{ function('__', 'The cron job may not be executing. Check server cron configuration or consider using a real cron job instead of WordPress cron.', 'aio-event-solution') }}</p>
+			</div>
+		{% else %}
+			<div class="notice notice-success inline">
+				<p>
+					<strong>✓
+						{{ function('__', 'OK:', 'aio-event-solution') }}</strong>
+					{{ should_run.message }}</p>
+			</div>
+		{% endif %}
+
+		{% if latest_log %}
+			<table class="widefat" style="margin-top: 15px;">
+				<tr>
+					<th style="width: 150px;">{{ function('__', 'Last Execution:', 'aio-event-solution') }}</th>
+					<td>{{ latest_log.execution_time }}</td>
+				</tr>
+				<tr>
+					<th>{{ function('__', 'Status:', 'aio-event-solution') }}</th>
+					<td>
+						{% if latest_log.status == 'success' %}
+							<span style="color: #46b450;">✓
+								{{ function('__', 'Success', 'aio-event-solution') }}</span>
+						{% elseif latest_log.status == 'error' %}
+							<span style="color: #dc3232;">✗
+								{{ function('__', 'Error', 'aio-event-solution') }}</span>
+						{% else %}
+							<span style="color: #ffb900;">⚠
+								{{ function('__', 'Warning', 'aio-event-solution') }}</span>
+						{% endif %}
+					</td>
+				</tr>
+				<tr>
+					<th>{{ function('__', 'Duration:', 'aio-event-solution') }}</th>
+					<td>{{ latest_log.execution_duration is not null ? latest_log.execution_duration|number_format(3) ~ 's' : 'N/A' }}</td>
+				</tr>
+				<tr>
+					<th>{{ function('__', 'Scheduled Emails:', 'aio-event-solution') }}</th>
+					<td>{{ latest_log.scheduled_count }}</td>
+				</tr>
+				<tr>
+					<th>{{ function('__', 'Errors:', 'aio-event-solution') }}</th>
+					<td>{{ latest_log.error_count }}</td>
+				</tr>
+				{% if latest_log.message %}
+					<tr>
+						<th>{{ function('__', 'Message:', 'aio-event-solution') }}</th>
+						<td>{{ latest_log.message }}</td>
+					</tr>
+				{% endif %}
+			</table>
+		{% endif %}
+	</div>
+
+	<div class="card" style="max-width: 800px; margin-top: 20px;">
+		<h2>{{ function('__', 'Statistics (Last 30 Days)', 'aio-event-solution') }}</h2>
+		<table class="widefat">
+			<tr>
+				<th style="width: 200px;">{{ function('__', 'Total Executions:', 'aio-event-solution') }}</th>
+				<td>{{ stats.total_executions }}</td>
+			</tr>
+			<tr>
+				<th>{{ function('__', 'Successful:', 'aio-event-solution') }}</th>
+				<td style="color: #46b450;">{{ stats.success_count }}</td>
+			</tr>
+			<tr>
+				<th>{{ function('__', 'Errors:', 'aio-event-solution') }}</th>
+				<td style="color: #dc3232;">{{ stats.error_count }}</td>
+			</tr>
+			<tr>
+				<th>{{ function('__', 'Warnings:', 'aio-event-solution') }}</th>
+				<td style="color: #ffb900;">{{ stats.warning_count }}</td>
+			</tr>
+			<tr>
+				<th>{{ function('__', 'Avg Duration:', 'aio-event-solution') }}</th>
+				<td>{{ stats.avg_duration > 0 ? stats.avg_duration|number_format(3) ~ 's' : 'N/A' }}</td>
+			</tr>
+			<tr>
+				<th>{{ function('__', 'Total Scheduled:', 'aio-event-solution') }}</th>
+				<td>{{ stats.total_scheduled }}</td>
+			</tr>
+			<tr>
+				<th>{{ function('__', 'Total Errors:', 'aio-event-solution') }}</th>
+				<td style="color: #dc3232;">{{ stats.total_errors }}</td>
+			</tr>
+		</table>
+	</div>
+
+	<div class="card" style="max-width: 800px; margin-top: 20px;">
+		<h2>{{ function('__', 'Recent Execution Logs', 'aio-event-solution') }}</h2>
+
+		{% if logs is empty %}
+			<p>{{ function('__', 'No logs available yet.', 'aio-event-solution') }}</p>
+		{% else %}
+			<table class="widefat striped">
+				<thead>
+					<tr>
+						<th>{{ function('__', 'Execution Time', 'aio-event-solution') }}</th>
+						<th>{{ function('__', 'Status', 'aio-event-solution') }}</th>
+						<th>{{ function('__', 'Duration', 'aio-event-solution') }}</th>
+						<th>{{ function('__', 'Scheduled', 'aio-event-solution') }}</th>
+						<th>{{ function('__', 'Errors', 'aio-event-solution') }}</th>
+						<th>{{ function('__', 'Message', 'aio-event-solution') }}</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for log in logs %}
+						<tr>
+							<td>{{ log.execution_time }}</td>
+							<td>
+								{% if log.status == 'success' %}
+									<span style="color: #46b450;">✓
+										{{ function('__', 'Success', 'aio-event-solution') }}</span>
+								{% elseif log.status == 'error' %}
+									<span style="color: #dc3232;">✗
+										{{ function('__', 'Error', 'aio-event-solution') }}</span>
+								{% else %}
+									<span style="color: #ffb900;">⚠
+										{{ function('__', 'Warning', 'aio-event-solution') }}</span>
+								{% endif %}
+							</td>
+							<td>{{ log.execution_duration is not null ? log.execution_duration|number_format(3) ~ 's' : 'N/A' }}</td>
+							<td>{{ log.scheduled_count }}</td>
+							<td style="color: #dc3232;">{{ log.error_count }}</td>
+							<td>{{ log.message ?: '—' }}</td>
+						</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		{% endif %}
+	</div>
+
+	<div class="card" style="max-width: 800px; margin-top: 20px; background: #f0f6fc; border-left: 4px solid #2271b1;">
+		<h3 style="margin-top: 0;">{{ function('__', '💡 Tips for Reliable Cron Execution', 'aio-event-solution') }}</h3>
+		<ul style="margin: 0; padding-left: 20px;">
+			<li>{{ function('__', 'WordPress cron relies on site traffic. If your site has low traffic, cron may not execute on time.', 'aio-event-solution') }}</li>
+			<li>{{ function('__', 'For production sites, consider disabling WordPress cron (define DISABLE_WP_CRON) and set up a real server cron job:', 'aio-event-solution') }}
+				<code style="display: block; margin-top: 5px; padding: 5px; background: #fff;">*/5 * * * * wget -q -O -
+					{{ cron_url }}
+					>/dev/null 2>&1</code>
+			</li>
+			<li>{{ function('__', 'Monitor this page regularly to ensure cron is executing as expected.', 'aio-event-solution') }}</li>
+			<li>{{ function('__', 'If cron is consistently missing, check your server error logs for WordPress cron issues.', 'aio-event-solution') }}</li>
+		</ul>
+	</div>
+</div>

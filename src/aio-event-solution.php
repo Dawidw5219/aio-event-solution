@@ -4,8 +4,8 @@
  * Plugin Name: All-in-One Event Solution
  * Text Domain: aio-event-solution
  * Domain Path: /languages
- * Description: Complete event management solution for WordPress with Timber
- * Version: 1.0.0
+ * Description: Complete event management solution for WordPress with Brevo integration
+ * Version: 1.0.2
  * Author: App4You.dev
  * Author URI: https://app4you.dev
  * License: GPLv3 or later
@@ -136,7 +136,7 @@ function aio_events_create_tables()
 		KEY email (email)
 	) $charset_collate;";
 
-	require_once ABSPATH . 'wp-admin/php/upgrade.php';
+	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 	dbDelta($sql);
 
 	// Create scheduled emails table

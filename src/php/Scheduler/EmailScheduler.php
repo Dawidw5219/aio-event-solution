@@ -53,7 +53,7 @@ class EmailScheduler
       KEY brevo_message_id (brevo_message_id)
     ) $charset_collate;";
 
-    require_once ABSPATH . 'wp-admin/php/upgrade.php';
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
     dbDelta($sql);
 
     return $wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name;

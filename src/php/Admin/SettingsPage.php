@@ -77,7 +77,21 @@ class SettingsPage
       ]
     );
 
-    // Email Scheduling Section
+    // ============================================
+    // SEKCJA 2: Shortcodes
+    // ============================================
+
+    add_settings_section(
+      'aio_events_shortcodes_section',
+      __('Shortcodes', 'aio-event-solution'),
+      [self::class, 'render_shortcodes_section'],
+      'aio-events-settings'
+    );
+
+    // ============================================
+    // SEKCJA 3: Email Templates
+    // ============================================
+
     add_settings_section(
       'aio_events_email_scheduling_section',
       __('Email Templates', 'aio-event-solution'),
@@ -332,29 +346,6 @@ class SettingsPage
     // SEKCJA 5: Features (przełączniki)
     // ============================================
 
-    // Features Section
-    add_settings_section(
-      'aio_events_features_section',
-      __('Features', 'aio-event-solution'),
-      null,
-      'aio-events-settings'
-    );
-
-    // Events URL Slug
-    add_settings_field(
-      'events_slug',
-      __('Events URL Slug', 'aio-event-solution'),
-      [self::class, 'render_slug_field'],
-      'aio-events-settings',
-      'aio_events_features_section',
-      [
-        'id' => 'events_slug',
-        'label_for' => 'events_slug',
-        'description' => __('URL slug for events (e.g., "events" creates /events/event-name). After changing, go to Settings → Permalinks and click Save.', 'aio-event-solution'),
-        'default' => 'events',
-      ]
-    );
-
     // ============================================
     // SEKCJA 6: Debug & Logging (na końcu)
     // ============================================
@@ -392,19 +383,6 @@ class SettingsPage
 
     if (isset($input['brevo_api_key'])) {
       $sanitized['brevo_api_key'] = sanitize_text_field($input['brevo_api_key']);
-    }
-
-    if (isset($input['events_slug'])) {
-      $new_slug = sanitize_title($input['events_slug']);
-      $sanitized['events_slug'] = !empty($new_slug) ? $new_slug : 'events';
-      
-      // Check if slug changed - need to flush rewrite rules
-      $old_settings = get_option('aio_events_settings', []);
-      $old_slug = $old_settings['events_slug'] ?? 'events';
-      if ($new_slug !== $old_slug) {
-        // Schedule rewrite flush on next page load
-        update_option('aio_events_flush_rewrite', true);
-      }
     }
 
     if (isset($input['date_format'])) {
@@ -475,46 +453,6 @@ class SettingsPage
       $sanitized['default_brevo_list_id'] = absint($input['default_brevo_list_id']);
     }
 
-    // Check required fields AFTER sanitization - prevent saving empty values
-    $required_fields = [
-      'brevo_api_key' => __('Brevo API Key', 'aio-event-solution'),
-      'default_brevo_list_id' => __('Default Brevo List', 'aio-event-solution'),
-      'email_template_after_registration' => __('Template After Registration', 'aio-event-solution'),
-      'email_template_before_event' => __('Event Reminder Template', 'aio-event-solution'),
-      'email_template_after_event' => __('Template After Event', 'aio-event-solution'),
-      'global_post_event_message' => __('Global Post-Event Message', 'aio-event-solution'),
-      'global_brevo_form_html' => __('Global Registration Form (HTML)', 'aio-event-solution'),
-    ];
-    
-    $errors = [];
-    foreach ($required_fields as $field_key => $field_label) {
-      $value = isset($sanitized[$field_key]) ? $sanitized[$field_key] : '';
-      // For numeric fields (templates, list ID), check if > 0
-      if (in_array($field_key, ['email_template_after_registration', 'email_template_before_event', 'email_template_after_event', 'default_brevo_list_id'])) {
-        if (empty($value) || $value <= 0) {
-          $errors[] = sprintf(__('Field "%s" is required and cannot be empty.', 'aio-event-solution'), $field_label);
-        }
-      } else {
-        // For text/html fields, check if empty after trim
-        $value = is_string($value) ? trim($value) : $value;
-        if (empty($value)) {
-          $errors[] = sprintf(__('Field "%s" is required and cannot be empty.', 'aio-event-solution'), $field_label);
-        }
-      }
-    }
-    
-    // If there are errors, show them and prevent save
-    if (!empty($errors)) {
-      add_settings_error(
-        'aio_events_settings',
-        'required_fields_empty',
-        implode('<br>', $errors),
-        'error'
-      );
-      // Return current settings instead of sanitized input
-      return get_option('aio_events_settings', []);
-    }
-
     // Debug email
     if (isset($input['debug_email'])) {
       $debug_email = sanitize_email($input['debug_email']);
@@ -574,8 +512,6 @@ class SettingsPage
       esc_html__('Create or manage templates in Brevo', 'aio-event-solution')
     );
     echo '</p>';
-    
-    echo '<p><a href="' . esc_url(admin_url('edit.php?post_type=aio_event&page=aio-events-scheduled-emails')) . '" class="button">' . esc_html__('View Scheduled Emails', 'aio-event-solution') . '</a></p>';
   }
   
   /**
@@ -594,24 +530,15 @@ class SettingsPage
   {
     $settings = get_option('aio_events_settings', []);
     $value = $settings[$args['id']] ?? '';
-?>
-    <div style="max-width: 800px;">
-      <?php
-      wp_editor($value, $args['id'], [
-        'textarea_name' => 'aio_events_settings[' . $args['id'] . ']',
-        'textarea_rows' => 8,
-        'media_buttons' => true,
-        'teeny' => false,
-        'tinymce' => [
-          'toolbar1' => 'formatselect,bold,italic,underline,bullist,numlist,link,unlink,blockquote,alignleft,aligncenter,alignright,undo,redo',
-        ],
-      ]);
-      ?>
-      <p class="description">
-        <?php echo esc_html($args['description']); ?>
-      </p>
-    </div>
-  <?php
+    echo '<div style="max-width: 800px;">';
+    wp_editor($value, $args['id'], [
+      'textarea_name' => 'aio_events_settings[' . $args['id'] . ']',
+      'textarea_rows' => 8,
+      'media_buttons' => true,
+      'teeny' => false,
+      'tinymce' => ['toolbar1' => 'formatselect,bold,italic,underline,bullist,numlist,link,unlink,blockquote,alignleft,aligncenter,alignright,undo,redo'],
+    ]);
+    echo '<p class="description">' . esc_html($args['description']) . '</p></div>';
   }
 
   /**
@@ -634,29 +561,26 @@ class SettingsPage
   }
 
   /**
+   * Render Shortcodes section
+   */
+  public static function render_shortcodes_section()
+  {
+    echo '<p>' . esc_html__('Use the shortcode below to display events on any page or post:', 'aio-event-solution') . '</p>';
+    echo '<table class="widefat" style="max-width: 600px;"><thead><tr><th>' . esc_html__('Shortcode', 'aio-event-solution') . '</th><th>' . esc_html__('Description', 'aio-event-solution') . '</th></tr></thead><tbody>';
+    echo '<tr><td><code>[aio_events]</code></td><td>' . esc_html__('Display upcoming events (default limit: 12)', 'aio-event-solution') . '</td></tr>';
+    echo '<tr><td><code>[aio_events limit="5"]</code></td><td>' . esc_html__('Limit number of events', 'aio-event-solution') . '</td></tr>';
+    echo '<tr><td><code>[aio_events category="slug"]</code></td><td>' . esc_html__('Filter by category slug', 'aio-event-solution') . '</td></tr>';
+    echo '<tr><td><code>[aio_events show_past="yes"]</code></td><td>' . esc_html__('Include past events', 'aio-event-solution') . '</td></tr>';
+    echo '</tbody></table>';
+  }
+
+  /**
    * Render Brevo section description
    */
   public static function render_brevo_section_description()
   {
     echo '<p>' . esc_html__('Connect your Brevo account to automatically add event registrants to your email lists.', 'aio-event-solution') . '</p>';
-    echo '<p>' . sprintf(
-      esc_html__('Get your API key from %s', 'aio-event-solution'),
-      '<a href="https://app.brevo.com/settings/keys/api" target="_blank">Brevo Dashboard</a>'
-    ) . '</p>';
-
-    // Button to create registrations table
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'aio_event_registrations';
-    $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name;
-
-    if (!$table_exists) {
-      echo '<div style="background: #fff3cd; border: 1px solid #ffc107; padding: 12px; border-radius: 4px; margin-top: 10px;">';
-      echo '<p style="margin: 0 0 10px 0;"><strong>⚠️ ' . esc_html__('Registrations table not found!', 'aio-event-solution') . '</strong></p>';
-      echo '<p style="margin: 0 0 10px 0;">' . esc_html__('Click the button below to create the required database table.', 'aio-event-solution') . '</p>';
-      echo '<button type="button" id="aio-create-table-btn" class="button button-secondary">' . esc_html__('Create Registrations Table', 'aio-event-solution') . '</button>';
-      echo '<span id="aio-create-table-result" style="margin-left: 10px;"></span>';
-      echo '</div>';
-    }
+    echo '<p>' . sprintf(esc_html__('Get your API key from %s', 'aio-event-solution'), '<a href="https://app.brevo.com/settings/keys/api" target="_blank">Brevo Dashboard</a>') . '</p>';
   }
 
   /**
@@ -666,54 +590,28 @@ class SettingsPage
   {
     $settings = get_option('aio_events_settings', []);
     $value = $settings[$args['id']] ?? '';
-    $api_key = $settings['brevo_api_key'] ?? '';
-
     require_once AIO_EVENTS_PATH . 'php/Integrations/BrevoAPI.php';
     $brevo = new \AIOEvents\Integrations\BrevoAPI();
     $lists = $brevo->is_configured() ? $brevo->get_lists() : [];
     $lists_error = is_wp_error($lists);
-  ?>
-    <div style="max-width: 600px;">
-      <?php if ($brevo->is_configured() && !$lists_error && !empty($lists)) : ?>
-        <select
-          id="<?php echo esc_attr($args['id']); ?>"
-          name="aio_events_settings[<?php echo esc_attr($args['id']); ?>]"
-          style="min-width: 400px; width: 100%;">
-          <option value="">— <?php _e('Select list', 'aio-event-solution'); ?> —</option>
-          <?php foreach ($lists as $list) : ?>
-            <option value="<?php echo esc_attr($list['id']); ?>" <?php selected($value, $list['id']); ?>>
-              <?php echo esc_html($list['name']); ?> (<?php echo esc_html($list['totalSubscribers'] ?? 0); ?> <?php _e('subscribers', 'aio-event-solution'); ?>)
-            </option>
-          <?php endforeach; ?>
-        </select>
-        <p class="description"><?php echo esc_html($args['description']); ?></p>
-      <?php elseif ($lists_error) : ?>
-        <input type="number"
-          id="<?php echo esc_attr($args['id']); ?>"
-          name="aio_events_settings[<?php echo esc_attr($args['id']); ?>]"
-          value="<?php echo esc_attr($value); ?>"
-          class="regular-text"
-          min="1"
-          placeholder="123">
-        <p class="description"><?php echo esc_html($args['description']); ?></p>
-        <p style="color: #d63638; margin-top: 10px;">
-          <?php echo esc_html($lists->get_error_message()); ?>
-        </p>
-      <?php else : ?>
-        <input type="number"
-          id="<?php echo esc_attr($args['id']); ?>"
-          name="aio_events_settings[<?php echo esc_attr($args['id']); ?>]"
-          value="<?php echo esc_attr($value); ?>"
-          class="regular-text"
-          min="1"
-          placeholder="123">
-        <p class="description"><?php echo esc_html($args['description']); ?></p>
-        <p style="color: #dba617; margin-top: 10px;">
-          <?php _e('Configure Brevo API key to see list of lists', 'aio-event-solution'); ?>
-        </p>
-      <?php endif; ?>
-    </div>
-  <?php
+
+    echo '<div style="max-width:600px;">';
+    if ($brevo->is_configured() && !$lists_error && !empty($lists)) {
+      echo '<select id="' . esc_attr($args['id']) . '" name="aio_events_settings[' . esc_attr($args['id']) . ']" style="min-width:400px;width:100%;">';
+      echo '<option value="">— ' . esc_html__('Select list', 'aio-event-solution') . ' —</option>';
+      foreach ($lists as $list) {
+        echo '<option value="' . esc_attr($list['id']) . '"' . selected($value, $list['id'], false) . '>' . esc_html($list['name']) . ' (' . esc_html($list['totalSubscribers'] ?? 0) . ' ' . esc_html__('subscribers', 'aio-event-solution') . ')</option>';
+      }
+      echo '</select>';
+    } else {
+      echo '<input type="number" id="' . esc_attr($args['id']) . '" name="aio_events_settings[' . esc_attr($args['id']) . ']" value="' . esc_attr($value) . '" class="small-text" min="1" placeholder="123">';
+      if ($lists_error) {
+        echo '<p style="color:#d63638;margin-top:10px;">' . esc_html($lists->get_error_message()) . '</p>';
+      } elseif (!$brevo->is_configured()) {
+        echo '<p style="color:#dba617;margin-top:10px;">' . esc_html__('Configure Brevo API key to see list of lists', 'aio-event-solution') . '</p>';
+      }
+    }
+    echo '<p class="description">' . esc_html($args['description']) . '</p></div>';
   }
 
   /**
@@ -723,76 +621,30 @@ class SettingsPage
   {
     $settings = get_option('aio_events_settings', []);
     $value = $settings[$args['id']] ?? '';
-  ?>
-    <div style="max-width: 600px;">
-      <input type="text"
-        id="<?php echo esc_attr($args['id']); ?>"
-        name="aio_events_settings[<?php echo esc_attr($args['id']); ?>]"
-        value="<?php echo esc_attr($value); ?>"
-        class="large-text"
-        placeholder="xkeysib-xxxxxxxxxxxx">
-      <p class="description"><?php echo esc_html($args['description']); ?></p>
+    $nonce = wp_create_nonce('aio_save_brevo_key');
 
-      <?php if (!empty($value)) : ?>
-        <button type="button" id="aio-test-brevo-btn" class="button button-secondary" style="margin-top: 10px;">
-          <?php _e('Test Connection', 'aio-event-solution'); ?>
-        </button>
-        <span id="aio-test-brevo-result" style="margin-left: 10px;"></span>
-      <?php endif; ?>
-    </div>
-
-    <script>
-      jQuery(document).ready(function($) {
-        // Test Brevo connection
-        $('#aio-test-brevo-btn').on('click', function() {
-          const $btn = $(this);
-          const $result = $('#aio-test-brevo-result');
-          const apiKey = $('#brevo_api_key').val();
-
-          $btn.prop('disabled', true).text('<?php _e('Testing...', 'aio-event-solution'); ?>');
-          $result.html('');
-
-          $.post(ajaxurl, {
-            action: 'aio_test_brevo_connection',
-            api_key: apiKey,
-            nonce: '<?php echo wp_create_nonce('aio_test_brevo'); ?>'
-          }, function(response) {
-            if (response.success) {
-              $result.html('<span style="color: #28a745;">✅ ' + response.data.message + '</span>');
-            } else {
-              $result.html('<span style="color: #d63638;">❌ ' + response.data.message + '</span>');
-            }
-          }).always(function() {
-            $btn.prop('disabled', false).text('<?php _e('Test Connection', 'aio-event-solution'); ?>');
-          });
-        });
-
-        // Create table
-        $('#aio-create-table-btn').on('click', function() {
-          const $btn = $(this);
-          const $result = $('#aio-create-table-result');
-
-          $btn.prop('disabled', true).text('<?php _e('Creating...', 'aio-event-solution'); ?>');
-          $result.html('');
-
-          $.post(ajaxurl, {
-            action: 'aio_create_registrations_table',
-            nonce: '<?php echo wp_create_nonce('aio_create_table'); ?>'
-          }, function(response) {
-            if (response.success) {
-              $result.html('<span style="color: #28a745;">✅ ' + response.data.message + '</span>');
-              setTimeout(function() {
-                location.reload();
-              }, 1500);
-            } else {
-              $result.html('<span style="color: #d63638;">❌ ' + response.data.message + '</span>');
-              $btn.prop('disabled', false).text('<?php _e('Create Registrations Table', 'aio-event-solution'); ?>');
-            }
-          });
+    echo '<div style="max-width:600px;">';
+    echo '<input type="text" id="' . esc_attr($args['id']) . '" name="aio_events_settings[' . esc_attr($args['id']) . ']" value="' . esc_attr($value) . '" class="large-text" placeholder="xkeysib-xxxxxxxxxxxx">';
+    echo '<p class="description">' . esc_html($args['description']) . '</p>';
+    echo '<button type="button" id="aio-save-brevo-btn" class="button button-primary" style="margin-top:10px;">' . esc_html__('Save & Connect', 'aio-event-solution') . '</button>';
+    echo '<span id="aio-test-brevo-result" style="margin-left:10px;"></span>';
+    echo '</div>';
+    echo '<script>jQuery(function($){
+      $("#aio-save-brevo-btn").on("click",function(){
+        var b=$(this),r=$("#aio-test-brevo-result"),key=$("#brevo_api_key").val();
+        if(!key){r.html("<span style=color:#d63638>' . esc_js(__('Please enter API key', 'aio-event-solution')) . '</span>");return;}
+        b.prop("disabled",true).text("...");
+        $.post(ajaxurl,{action:"aio_save_brevo_key",api_key:key,nonce:"' . $nonce . '"},function(d){
+          if(d.success){
+            r.html("<span style=color:#46b450>✓ "+d.data.message+"</span>");
+            setTimeout(function(){location.reload();},1000);
+          }else{
+            r.html("<span style=color:#d63638>✗ "+d.data.message+"</span>");
+            b.prop("disabled",false).text("' . esc_js(__('Save & Connect', 'aio-event-solution')) . '");
+          }
         });
       });
-    </script>
-  <?php
+    });</script>';
   }
 
   /**
@@ -802,96 +654,20 @@ class SettingsPage
   {
     $settings = get_option('aio_events_settings', []);
     $forms = $settings['brevo_forms'] ?? [];
-  ?>
-    <div style="max-width: 900px;">
-      <p class="description" style="margin: 0 0 10px;">
-        <?php echo esc_html($args['description']); ?>
-      </p>
+    $remove_text = esc_html__('Remove', 'aio-event-solution');
 
-      <table class="widefat fixed striped">
-        <thead>
-          <tr>
-            <th style="width: 20%;"><?php _e('Name', 'aio-event-solution'); ?></th>
-            <th style="width: 25%;"><?php _e('Form URL', 'aio-event-solution'); ?></th>
-            <th><?php _e('Embed Code (iframe/script)', 'aio-event-solution'); ?></th>
-            <th style="width: 90px; text-align: right;">&nbsp;</th>
-          </tr>
-        </thead>
-        <tbody id="aio-brevo-forms-rows">
-          <?php if (empty($forms)) : ?>
-            <tr class="aio-brevo-form-row">
-              <td>
-                <input type="text" name="aio_events_settings[brevo_forms][0][name]" class="regular-text" placeholder="My Registration Form">
-                <input type="hidden" name="aio_events_settings[brevo_forms][0][id]" value="<?php echo esc_attr(substr(md5(microtime(true)), 0, 10)); ?>">
-              </td>
-              <td>
-                <input type="url" name="aio_events_settings[brevo_forms][0][url]" class="regular-text" placeholder="https://my.brevo.com/...">
-              </td>
-              <td>
-                <textarea name="aio_events_settings[brevo_forms][0][embed]" rows="2" style="width: 100%;" placeholder='&lt;iframe src="..." width="100%" height="600"&gt;&lt;/iframe&gt;'></textarea>
-              </td>
-              <td style="text-align: right;">
-                <button type="button" class="button button-link-delete aio-remove-form-row"><?php _e('Remove', 'aio-event-solution'); ?></button>
-              </td>
-            </tr>
-          <?php else : ?>
-            <?php foreach ($forms as $index => $form) : ?>
-              <tr class="aio-brevo-form-row">
-                <td>
-                  <input type="text" name="aio_events_settings[brevo_forms][<?php echo esc_attr($index); ?>][name]" class="regular-text" value="<?php echo esc_attr($form['name'] ?? ''); ?>">
-                  <input type="hidden" name="aio_events_settings[brevo_forms][<?php echo esc_attr($index); ?>][id]" value="<?php echo esc_attr($form['id'] ?? ''); ?>">
-                </td>
-                <td>
-                  <input type="url" name="aio_events_settings[brevo_forms][<?php echo esc_attr($index); ?>][url]" class="regular-text" value="<?php echo esc_attr($form['url'] ?? ''); ?>">
-                </td>
-                <td>
-                  <textarea name="aio_events_settings[brevo_forms][<?php echo esc_attr($index); ?>][embed]" rows="2" style="width: 100%;"><?php echo esc_textarea($form['embed'] ?? ''); ?></textarea>
-                </td>
-                <td style="text-align: right;">
-                  <button type="button" class="button button-link-delete aio-remove-form-row"><?php _e('Remove', 'aio-event-solution'); ?></button>
-                </td>
-              </tr>
-            <?php endforeach; ?>
-          <?php endif; ?>
-        </tbody>
-      </table>
-
-      <p>
-        <button type="button" class="button" id="aio-add-form-row"><?php _e('Add Form', 'aio-event-solution'); ?></button>
-      </p>
-    </div>
-
-    <script>
-      jQuery(function($) {
-        const $rows = $('#aio-brevo-forms-rows');
-        $('#aio-add-form-row').on('click', function() {
-          const index = $rows.find('tr').length;
-          const uid = (Date.now().toString(36) + Math.random().toString(36).substring(2, 8)).slice(0, 10);
-          const row = `
-          <tr class="aio-brevo-form-row">
-            <td>
-              <input type="text" name="aio_events_settings[brevo_forms][${index}][name]" class="regular-text" placeholder="My Registration Form">
-              <input type="hidden" name="aio_events_settings[brevo_forms][${index}][id]" value="${uid}">
-            </td>
-            <td>
-              <input type="url" name="aio_events_settings[brevo_forms][${index}][url]" class="regular-text" placeholder="https://my.brevo.com/...">
-            </td>
-            <td>
-              <textarea name="aio_events_settings[brevo_forms][${index}][embed]" rows="2" style="width: 100%;" placeholder='&lt;iframe src="..." width="100%" height="600"&gt;&lt;/iframe&gt;'></textarea>
-            </td>
-            <td style="text-align: right;">
-              <button type="button" class="button button-link-delete aio-remove-form-row"><?php _e('Remove', 'aio-event-solution'); ?></button>
-            </td>
-          </tr>`;
-          $rows.append(row);
-        });
-
-        $rows.on('click', '.aio-remove-form-row', function() {
-          $(this).closest('tr').remove();
-        });
-      });
-    </script>
-  <?php
+    echo '<div style="max-width:900px;"><p class="description" style="margin:0 0 10px;">' . esc_html($args['description']) . '</p>';
+    echo '<table class="widefat"><thead><tr><th style="width:20%">' . esc_html__('Name', 'aio-event-solution') . '</th><th style="width:25%">' . esc_html__('Form URL', 'aio-event-solution') . '</th><th>' . esc_html__('Embed Code', 'aio-event-solution') . '</th><th style="width:80px"></th></tr></thead><tbody id="aio-brevo-forms-rows">';
+    if (empty($forms)) {
+      $uid = substr(md5(microtime(true)), 0, 10);
+      echo '<tr class="aio-brevo-form-row"><td><input type="text" name="aio_events_settings[brevo_forms][0][name]" class="regular-text"><input type="hidden" name="aio_events_settings[brevo_forms][0][id]" value="' . $uid . '"></td><td><input type="url" name="aio_events_settings[brevo_forms][0][url]" class="regular-text"></td><td><textarea name="aio_events_settings[brevo_forms][0][embed]" rows="2" style="width:100%"></textarea></td><td style="text-align:right"><button type="button" class="button button-link-delete aio-remove-form-row">' . $remove_text . '</button></td></tr>';
+    } else {
+      foreach ($forms as $i => $f) {
+        echo '<tr class="aio-brevo-form-row"><td><input type="text" name="aio_events_settings[brevo_forms][' . $i . '][name]" class="regular-text" value="' . esc_attr($f['name'] ?? '') . '"><input type="hidden" name="aio_events_settings[brevo_forms][' . $i . '][id]" value="' . esc_attr($f['id'] ?? '') . '"></td><td><input type="url" name="aio_events_settings[brevo_forms][' . $i . '][url]" class="regular-text" value="' . esc_attr($f['url'] ?? '') . '"></td><td><textarea name="aio_events_settings[brevo_forms][' . $i . '][embed]" rows="2" style="width:100%">' . esc_textarea($f['embed'] ?? '') . '</textarea></td><td style="text-align:right"><button type="button" class="button button-link-delete aio-remove-form-row">' . $remove_text . '</button></td></tr>';
+      }
+    }
+    echo '</tbody></table><p><button type="button" class="button" id="aio-add-form-row">' . esc_html__('Add Form', 'aio-event-solution') . '</button></p></div>';
+    echo '<script>jQuery(function($){$("#aio-add-form-row").on("click",function(){var i=$(".aio-brevo-form-row").length,u=Date.now().toString(36);$("#aio-brevo-forms-rows").append(\'<tr class="aio-brevo-form-row"><td><input type="text" name="aio_events_settings[brevo_forms][\'+i+\'][name]" class="regular-text"><input type="hidden" name="aio_events_settings[brevo_forms][\'+i+\'][id]" value="\'+u+\'"></td><td><input type="url" name="aio_events_settings[brevo_forms][\'+i+\'][url]" class="regular-text"></td><td><textarea name="aio_events_settings[brevo_forms][\'+i+\'][embed]" rows="2" style="width:100%"></textarea></td><td style="text-align:right"><button type="button" class="button button-link-delete aio-remove-form-row">' . $remove_text . '</button></td></tr>\');});$(document).on("click",".aio-remove-form-row",function(){if($(".aio-brevo-form-row").length>1)$(this).closest("tr").remove();else $(this).closest("tr").find("input,textarea").val("");});});</script>';
   }
 
   /**
@@ -903,14 +679,8 @@ class SettingsPage
     $value = $settings[$args['id']] ?? '';
     $type = $args['type'] ?? 'text';
     $class = $args['class'] ?? 'regular-text';
-  ?>
-    <input type="<?php echo esc_attr($type); ?>"
-      id="<?php echo esc_attr($args['id']); ?>"
-      name="aio_events_settings[<?php echo esc_attr($args['id']); ?>]"
-      value="<?php echo esc_attr($value); ?>"
-      class="<?php echo esc_attr($class); ?>">
-    <p class="description"><?php echo esc_html($args['description']); ?></p>
-  <?php
+    echo '<input type="' . esc_attr($type) . '" id="' . esc_attr($args['id']) . '" name="aio_events_settings[' . esc_attr($args['id']) . ']" value="' . esc_attr($value) . '" class="' . esc_attr($class) . '">';
+    echo '<p class="description">' . esc_html($args['description']) . '</p>';
   }
 
   /**
@@ -919,22 +689,11 @@ class SettingsPage
   public static function render_number_field($args)
   {
     $settings = get_option('aio_events_settings', []);
-    $default = $args['default'] ?? 0;
-    $value = $settings[$args['id']] ?? $default;
+    $value = $settings[$args['id']] ?? ($args['default'] ?? 0);
     $min = $args['min'] ?? 0;
     $max = $args['max'] ?? null;
-    $class = $args['class'] ?? 'small-text';
-  ?>
-    <input type="number"
-      id="<?php echo esc_attr($args['id']); ?>"
-      name="aio_events_settings[<?php echo esc_attr($args['id']); ?>]"
-      value="<?php echo esc_attr($value); ?>"
-      class="<?php echo esc_attr($class); ?>"
-      min="<?php echo esc_attr($min); ?>"
-      <?php if ($max !== null) : ?>max="<?php echo esc_attr($max); ?>"<?php endif; ?>
-      step="1">
-    <p class="description"><?php echo esc_html($args['description']); ?></p>
-  <?php
+    echo '<input type="number" id="' . esc_attr($args['id']) . '" name="aio_events_settings[' . esc_attr($args['id']) . ']" value="' . esc_attr($value) . '" class="small-text" min="' . esc_attr($min) . '"' . ($max !== null ? ' max="' . esc_attr($max) . '"' : '') . ' step="1">';
+    echo '<p class="description">' . esc_html($args['description']) . '</p>';
   }
 
   /**
@@ -945,16 +704,8 @@ class SettingsPage
     $settings = get_option('aio_events_settings', []);
     $value = $settings[$args['id']] ?? '';
     $rows = $args['rows'] ?? 5;
-    $class = $args['class'] ?? 'large-text code';
-  ?>
-    <textarea
-      id="<?php echo esc_attr($args['id']); ?>"
-      name="aio_events_settings[<?php echo esc_attr($args['id']); ?>]"
-      class="<?php echo esc_attr($class); ?>"
-      rows="<?php echo esc_attr($rows); ?>"
-      style="font-family: monospace; font-size: 12px;"><?php echo esc_textarea($value); ?></textarea>
-    <p class="description"><?php echo esc_html($args['description']); ?></p>
-  <?php
+    echo '<textarea id="' . esc_attr($args['id']) . '" name="aio_events_settings[' . esc_attr($args['id']) . ']" class="large-text code" rows="' . esc_attr($rows) . '" style="font-family:monospace;font-size:12px;">' . esc_textarea($value) . '</textarea>';
+    echo '<p class="description">' . esc_html($args['description']) . '</p>';
   }
 
   /**
@@ -964,52 +715,8 @@ class SettingsPage
   {
     $settings = get_option('aio_events_settings', []);
     $value = $settings[$args['id']] ?? '';
-    ?>
-    <div>
-      <input type="email"
-        id="<?php echo esc_attr($args['id']); ?>"
-        name="aio_events_settings[<?php echo esc_attr($args['id']); ?>]"
-        value="<?php echo esc_attr($value); ?>"
-        class="regular-text"
-        placeholder="debug@example.com">
-      <p class="description"><?php echo esc_html($args['description']); ?></p>
-    </div>
-    <?php
-  }
-
-  /**
-   * Render slug field with preview
-   */
-  public static function render_slug_field($args)
-  {
-    $settings = get_option('aio_events_settings', []);
-    $default = $args['default'] ?? 'events';
-    $value = $settings[$args['id']] ?? $default;
-    $site_url = home_url('/');
-    ?>
-    <div>
-      <input type="text"
-        id="<?php echo esc_attr($args['id']); ?>"
-        name="aio_events_settings[<?php echo esc_attr($args['id']); ?>]"
-        value="<?php echo esc_attr($value); ?>"
-        class="regular-text"
-        pattern="[a-z0-9-]+"
-        placeholder="<?php echo esc_attr($default); ?>">
-      <p class="description">
-        <?php echo esc_html($args['description']); ?><br>
-        <strong><?php esc_html_e('Preview:', 'aio-event-solution'); ?></strong>
-        <code><?php echo esc_html($site_url); ?><span id="slug-preview"><?php echo esc_html($value); ?></span>/event-name</code>
-      </p>
-    </div>
-    <script>
-    jQuery(function($) {
-      $('#<?php echo esc_js($args['id']); ?>').on('input', function() {
-        var slug = $(this).val().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-        $('#slug-preview').text(slug || '<?php echo esc_js($default); ?>');
-      });
-    });
-    </script>
-    <?php
+    echo '<input type="email" id="' . esc_attr($args['id']) . '" name="aio_events_settings[' . esc_attr($args['id']) . ']" value="' . esc_attr($value) . '" class="regular-text" placeholder="debug@example.com">';
+    echo '<p class="description">' . esc_html($args['description']) . '</p>';
   }
 
   /**
@@ -1017,37 +724,10 @@ class SettingsPage
    */
   public static function render_debug_section_description()
   {
-    echo '<p>' . esc_html__('Configure error logging and notifications. Errors from cron jobs and system operations will be sent to the debug email address.', 'aio-event-solution') . '</p>';
-
-    // Force Run Cron button
     $nonce = wp_create_nonce('aio-events-admin');
-    echo '<div style="margin-top: 15px; padding: 15px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">';
-    echo '<strong>' . esc_html__('Manual Cron Execution', 'aio-event-solution') . '</strong><br>';
-    echo '<p class="description" style="margin: 5px 0 10px;">' . esc_html__('Force the email scheduler to process pending emails now instead of waiting for the next cron run.', 'aio-event-solution') . '</p>';
-    echo '<button type="button" id="aio-force-cron-btn" class="button button-secondary">' . esc_html__('Force Run Cron Now', 'aio-event-solution') . '</button> ';
-    echo '<span id="aio-force-cron-result" style="margin-left:10px;"></span>';
-    echo '</div>';
-
-    echo <<<SCRIPT
-    <script>
-    jQuery(function(\$){
-      \$("#aio-force-cron-btn").on("click", function(){
-        var \$btn = \$(this);
-        var \$res = \$("#aio-force-cron-result");
-        \$btn.prop("disabled", true);
-        \$res.text("⏳ Processing...");
-        \$.post(ajaxurl, { action: "aio_force_run_cron", nonce: "{$nonce}" }, function(r){
-          var msg = r && r.data && r.data.message ? r.data.message : (r && r.success ? "OK" : "Error");
-          \$res.text((r && r.success ? "✅ " : "❌ ") + msg);
-          \$btn.prop("disabled", false);
-        }).fail(function(xhr){
-          \$res.text("❌ HTTP " + xhr.status);
-          \$btn.prop("disabled", false);
-        });
-      });
-    });
-    </script>
-SCRIPT;
+    echo '<p>' . esc_html__('Configure error logging and notifications.', 'aio-event-solution') . '</p>';
+    echo '<div style="margin-top:15px;padding:15px;background:#f9f9f9;border:1px solid #ddd;border-radius:4px;"><strong>' . esc_html__('Manual Cron Execution', 'aio-event-solution') . '</strong><br><p class="description" style="margin:5px 0 10px;">' . esc_html__('Force the email scheduler to process pending emails now.', 'aio-event-solution') . '</p><button type="button" id="aio-force-cron-btn" class="button button-secondary">' . esc_html__('Force Run Cron Now', 'aio-event-solution') . '</button> <span id="aio-force-cron-result" style="margin-left:10px;"></span></div>';
+    echo '<script>jQuery(function($){$("#aio-force-cron-btn").on("click",function(){var b=$(this),r=$("#aio-force-cron-result");b.prop("disabled",true);r.text("⏳...");$.post(ajaxurl,{action:"aio_force_run_cron",nonce:"' . $nonce . '"},function(d){r.text((d&&d.success?"✅ ":"❌ ")+(d&&d.data&&d.data.message?d.data.message:""));b.prop("disabled",false);}).fail(function(){r.text("❌ Error");b.prop("disabled",false);});});});</script>';
   }
 
   /**
@@ -1056,15 +736,9 @@ SCRIPT;
   public static function render_color_field($args)
   {
     $settings = get_option('aio_events_settings', []);
-    $value = $settings[$args['id']] ?? '#2271b1';
-  ?>
-    <input type="color"
-      id="<?php echo esc_attr($args['id']); ?>"
-      name="aio_events_settings[<?php echo esc_attr($args['id']); ?>]"
-      value="<?php echo esc_attr($value); ?>"
-      class="aio-color-picker">
-    <p class="description"><?php echo esc_html($args['description']); ?></p>
-  <?php
+    $value = $settings[$args['id']] ?? ($args['default'] ?? '#2271b1');
+    echo '<input type="color" id="' . esc_attr($args['id']) . '" name="aio_events_settings[' . esc_attr($args['id']) . ']" value="' . esc_attr($value) . '" style="height:40px;width:100px;">';
+    echo '<p class="description">' . esc_html($args['description']) . '</p>';
   }
 
   /**
@@ -1074,16 +748,7 @@ SCRIPT;
   {
     $settings = get_option('aio_events_settings', []);
     $checked = isset($settings[$args['id']]) && $settings[$args['id']];
-  ?>
-    <label>
-      <input type="checkbox"
-        id="<?php echo esc_attr($args['id']); ?>"
-        name="aio_events_settings[<?php echo esc_attr($args['id']); ?>]"
-        value="1"
-        <?php checked($checked, true); ?>>
-      <?php echo esc_html($args['description']); ?>
-    </label>
-  <?php
+    echo '<label><input type="checkbox" id="' . esc_attr($args['id']) . '" name="aio_events_settings[' . esc_attr($args['id']) . ']" value="1"' . ($checked ? ' checked' : '') . '> ' . esc_html($args['description']) . '</label>';
   }
 
   /**
@@ -1093,25 +758,12 @@ SCRIPT;
   {
     $settings = get_option('aio_events_settings', []);
     $value = $settings[$args['id']] ?? 'Y-m-d';
-
-    $formats = [
-      'Y-m-d' => 'YYYY-MM-DD',
-      'd/m/Y' => 'DD/MM/YYYY',
-      'm/d/Y' => 'MM/DD/YYYY',
-      'd.m.Y' => 'DD.MM.YYYY',
-    ];
-  ?>
-    <select id="<?php echo esc_attr($args['id']); ?>"
-      name="aio_events_settings[<?php echo esc_attr($args['id']); ?>]">
-      <?php foreach ($formats as $format_value => $format_label) : ?>
-        <option value="<?php echo esc_attr($format_value); ?>"
-          <?php selected($value, $format_value); ?>>
-          <?php echo esc_html($format_label); ?>
-        </option>
-      <?php endforeach; ?>
-    </select>
-    <p class="description"><?php echo esc_html($args['description']); ?></p>
-<?php
+    $formats = ['Y-m-d' => 'YYYY-MM-DD', 'd/m/Y' => 'DD/MM/YYYY', 'm/d/Y' => 'MM/DD/YYYY', 'd.m.Y' => 'DD.MM.YYYY'];
+    echo '<select id="' . esc_attr($args['id']) . '" name="aio_events_settings[' . esc_attr($args['id']) . ']">';
+    foreach ($formats as $k => $v) {
+      echo '<option value="' . esc_attr($k) . '"' . selected($value, $k, false) . '>' . esc_html($v) . '</option>';
+    }
+    echo '</select><p class="description">' . esc_html($args['description']) . '</p>';
   }
 
   /**
@@ -1119,30 +771,36 @@ SCRIPT;
    */
   public static function render_settings()
   {
-    // Always check required settings
     $settings = get_option('aio_events_settings', []);
     $missing_fields = [];
+    $has_api_key = !empty($settings['brevo_api_key']);
     
-    if (empty($settings['brevo_api_key'])) {
+    // API key is always required first
+    if (!$has_api_key) {
       $missing_fields[] = __('Brevo API Key', 'aio-event-solution');
-    }
-    if (empty($settings['default_brevo_list_id'])) {
-      $missing_fields[] = __('Default Brevo List', 'aio-event-solution');
-    }
-    if (empty($settings['email_template_after_registration'])) {
-      $missing_fields[] = __('Template After Registration', 'aio-event-solution');
-    }
-    if (empty($settings['email_template_before_event'])) {
-      $missing_fields[] = __('Event Reminder Template', 'aio-event-solution');
-    }
-    if (empty($settings['email_template_after_event'])) {
-      $missing_fields[] = __('Template After Event', 'aio-event-solution');
-    }
-    if (empty($settings['global_post_event_message'])) {
-      $missing_fields[] = __('Global Post-Event Message', 'aio-event-solution');
-    }
-    if (empty($settings['global_brevo_form_html'])) {
-      $missing_fields[] = __('Global Registration Form (HTML)', 'aio-event-solution');
+    } else {
+      // Other fields only required after API key is configured
+      if (empty($settings['default_brevo_list_id'])) {
+        $missing_fields[] = __('Default Brevo List', 'aio-event-solution');
+      }
+      if (empty($settings['email_template_after_registration'])) {
+        $missing_fields[] = __('Template After Registration', 'aio-event-solution');
+      }
+      if (empty($settings['email_template_before_event'])) {
+        $missing_fields[] = __('Event Reminder Template', 'aio-event-solution');
+      }
+      if (empty($settings['email_template_join_event'])) {
+        $missing_fields[] = __('Event Join Template', 'aio-event-solution');
+      }
+      if (empty($settings['email_template_after_event'])) {
+        $missing_fields[] = __('Template After Event', 'aio-event-solution');
+      }
+      if (empty($settings['global_post_event_message'])) {
+        $missing_fields[] = __('Global Post-Event Message', 'aio-event-solution');
+      }
+      if (empty($settings['global_brevo_form_html'])) {
+        $missing_fields[] = __('Global Registration Form (HTML)', 'aio-event-solution');
+      }
     }
     
     // Check for notice from redirect (if any)
@@ -1157,7 +815,11 @@ SCRIPT;
     // If there are missing fields, always show notice
     if (!empty($missing_fields) && !$show_notice) {
       $show_notice = true;
-      $notice = __('Cannot add event. Please fill in the following required fields:', 'aio-event-solution');
+      if (!$has_api_key) {
+        $notice = __('Start by adding your Brevo API key:', 'aio-event-solution');
+      } else {
+        $notice = __('Please complete the configuration:', 'aio-event-solution');
+      }
     }
     
     $context = [
@@ -1167,7 +829,7 @@ SCRIPT;
       'missing_fields' => $missing_fields,
     ];
 
-    Timber::render('admin/settings.twig', $context);
+    Timber::render('admin/pages/settings.twig', $context);
   }
 
   /**

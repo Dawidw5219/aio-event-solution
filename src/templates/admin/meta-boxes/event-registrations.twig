@@ -74,7 +74,7 @@ $button.prop('disabled', false).text('{{ function('__', 'Cancel all scheduled em
 }
 },
 error: function () {
-$message.html('<div class="notice notice-error inline"><p>  {{ function('__', 'An error occurred while communicating with server', 'aio-event-solution')|e('js') }}</p></div>').show();
+$message.html('<div class="notice notice-error inline"><p>   {{ function('__', 'An error occurred while communicating with server', 'aio-event-solution')|e('js') }}</p></div>').show();
 $button.prop('disabled', false).text('{{ function('__', 'Cancel all scheduled emails for this event', 'aio-event-solution')|e('js') }}');
 }
 });
@@ -144,11 +144,11 @@ $button.prop('disabled', false).text('{{ function('__', 'Cancel all scheduled em
 
 	<script>
 		(function ($) {
-			$('#aio-export-registrations-csv').on('click', function () {
-				var eventId = $(this).data('event-id');
-				var url = ajaxurl + '?action=aio_export_registrations_csv&event_id=' + eventId + '&nonce={{ function("wp_create_nonce", "aio_export_csv") }}';
-				window.location.href = url;
-			});
-		})(jQuery);
+$('#aio-export-registrations-csv').on('click', function () {
+var eventId = $(this).data('event-id');
+var url = ajaxurl + '?action=aio_export_registrations_csv&event_id=' + eventId + '&nonce= {{ function("wp_create_nonce", "aio_export_csv") }}';
+window.location.href = url;
+});
+})(jQuery);
 	</script>
 {% endif %}
