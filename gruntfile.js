@@ -5,7 +5,6 @@ module.exports = (grunt) => {
 	grunt.loadNpmTasks("grunt-contrib-watch");
 	grunt.loadNpmTasks("grunt-contrib-cssmin");
 	grunt.loadNpmTasks("grunt-contrib-uglify");
-	grunt.loadNpmTasks("grunt-replace");
 	grunt.loadNpmTasks("grunt-ftp-push");
 	grunt.loadNpmTasks("grunt-sync");
 	grunt.loadNpmTasks("grunt-wp-i18n");
@@ -13,6 +12,16 @@ module.exports = (grunt) => {
 
 	function packageJSON() {
 		return grunt.file.readJSON("package.json");
+	}
+
+	function getPluginVersion() {
+		const pluginName = packageJSON().name;
+		const pluginFile = grunt.file.read(`src/${pluginName}.php`);
+		const match = pluginFile.match(/Version:\s*(\d+\.\d+\.\d+)/);
+		if (!match) {
+			grunt.fail.fatal(`Version not found in src/${pluginName}.php header!`);
+		}
+		return match[1];
 	}
 
 	grunt.initConfig({
@@ -37,26 +46,6 @@ module.exports = (grunt) => {
 					exclude: ["vendor/**", "node_modules/**"],
 					domainPath: "/languages",
 				},
-			},
-		},
-
-		replace: {
-			main: {
-				options: {
-					patterns: [
-						{
-							match: /Version:\s*\d+\.\d+\.\d+/,
-							replacement: () => "Version: " + packageJSON().version,
-						},
-					],
-					usePrefix: false,
-				},
-				files: [
-					{
-						src: ["<%= src_dir %>/<%= wp_plugin_name %>.php"],
-						dest: "<%= src_dir %>/<%= wp_plugin_name %>.php",
-					},
-				],
 			},
 		},
 
@@ -185,11 +174,11 @@ module.exports = (grunt) => {
 				command: "git add .",
 			},
 			git_commit: {
-				command: () => `git commit -m "Release v${packageJSON().version}"`,
+				command: () => `git commit -m "Release v${getPluginVersion()}"`,
 			},
 			git_tag: {
 				command: () =>
-					`git tag -a v${packageJSON().version} -m "Release v${packageJSON().version}"`,
+					`git tag -a v${getPluginVersion()} -m "Release v${getPluginVersion()}"`,
 			},
 			git_push: {
 				command: "git push origin main --tags",
@@ -264,7 +253,6 @@ module.exports = (grunt) => {
 	]);
 
 	grunt.registerTask("deploy", [
-		"replace",
 		"build",
 		"shell:git_add",
 		"shell:git_commit",
