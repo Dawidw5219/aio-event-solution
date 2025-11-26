@@ -246,38 +246,62 @@ jQuery(document).ready(($) => {
 				let registrationSent = false;
 
 				// Capture form data on submit (before Brevo processes it)
-				form.addEventListener("submit", () => {
-					// Collect form data for later use
-					lastFormData = {};
-					const formElements = form.elements;
-					for (let i = 0; i < formElements.length; i++) {
-						const element = formElements[i];
-						if (element.name && element.name !== "email_address_check") {
-							if (element.type === "checkbox" || element.type === "radio") {
-								if (element.checked) {
-									lastFormData[element.name] = element.value;
+				form.addEventListener(
+					"submit",
+					() => {
+						// Collect form data for later use - handle arrays (checkboxes with [])
+						lastFormData = {};
+						const formElements = form.elements;
+						for (let i = 0; i < formElements.length; i++) {
+							const element = formElements[i];
+							if (element.name && element.name !== "email_address_check") {
+								const name = element.name;
+								
+								if (element.type === "checkbox") {
+									if (element.checked) {
+										// Handle array checkboxes (name ends with [])
+										if (name.endsWith("[]")) {
+											if (!lastFormData[name]) {
+												lastFormData[name] = [];
+											}
+											lastFormData[name].push(element.value);
+										} else {
+											lastFormData[name] = element.value;
+										}
+									}
+								} else if (element.type === "radio") {
+									if (element.checked) {
+										lastFormData[name] = element.value;
+									}
+								} else if (element.value) {
+									lastFormData[name] = element.value;
 								}
-							} else if (element.value) {
-								lastFormData[element.name] = element.value;
 							}
 						}
-					}
-					registrationSent = false;
-					console.log("[AIO Events] Form submitted to Brevo, captured data:", lastFormData);
-				}, true); // Use capture to run before Brevo's handler
+						registrationSent = false;
+						console.log("[AIO Events] Form submitted to Brevo, captured data:", lastFormData);
+					},
+					true,
+				); // Use capture to run before Brevo's handler
 
 				// Watch for Brevo success message
 				const observer = new MutationObserver((mutations) => {
-					// Check if success message appeared
+					// Check if success message appeared - look for text "successful" or visible success panel
 					const successPanel = form.querySelector(".sib-form-message-panel");
-					const isSuccess = successPanel && 
-						successPanel.style.display !== "none" && 
-						successPanel.textContent.length > 0 &&
-						!successPanel.classList.contains("sib-form-message-panel--error");
+					const successText = successPanel ? successPanel.textContent.toLowerCase() : "";
+					const isSuccess =
+						successPanel &&
+						successPanel.offsetParent !== null && // Element is visible
+						(successText.includes("successful") || 
+						 successText.includes("thank you") ||
+						 successText.includes("subscribed") ||
+						 (successText.length > 0 && !successPanel.classList.contains("sib-form-message-panel--error")));
 
 					if (isSuccess && lastFormData && !registrationSent) {
 						registrationSent = true;
-						console.log("[AIO Events] Brevo success detected, sending to our backend...");
+						console.log(
+							"[AIO Events] Brevo success detected, sending to our backend...",
+						);
 
 						// Send to our backend
 						$.ajax({
@@ -289,12 +313,19 @@ jQuery(document).ready(($) => {
 								form_data: lastFormData,
 							}),
 							success: (response) => {
-								console.log("[AIO Events] Backend registration:", response.success ? "OK" : "FAIL");
-								
+								console.log(
+									"[AIO Events] Backend registration:",
+									response.success ? "OK" : "FAIL",
+								);
+
 								// Show our success message
 								const $wrapper = $(wrapper);
-								const $formContainer = $wrapper.find(".aio-events-brevo-form-container");
-								const $successMessage = $wrapper.find(".aio-events-registration-success");
+								const $formContainer = $wrapper.find(
+									".aio-events-brevo-form-container",
+								);
+								const $successMessage = $wrapper.find(
+									".aio-events-registration-success",
+								);
 
 								if (response.success || response.already_registered) {
 									// Hide Brevo form container
@@ -303,7 +334,9 @@ jQuery(document).ready(($) => {
 									// Show our success message with email
 									const email = lastFormData.EMAIL || lastFormData.email || "";
 									if (email) {
-										$successMessage.find(".aio-events-success-email-value").text(email);
+										$successMessage
+											.find(".aio-events-success-email-value")
+											.text(email);
 									} else {
 										$successMessage.find(".aio-events-success-email").hide();
 									}
@@ -311,13 +344,19 @@ jQuery(document).ready(($) => {
 									$successMessage.slideDown(300);
 
 									// Scroll to success message
-									$("html, body").animate({
-										scrollTop: $successMessage.offset().top - 100,
-									}, 500);
+									$("html, body").animate(
+										{
+											scrollTop: $successMessage.offset().top - 100,
+										},
+										500,
+									);
 								}
 							},
 							error: (xhr) => {
-								console.error("[AIO Events] Backend registration error:", xhr.responseJSON?.message);
+								console.error(
+									"[AIO Events] Backend registration error:",
+									xhr.responseJSON?.message,
+								);
 							},
 						});
 					}
@@ -331,7 +370,9 @@ jQuery(document).ready(($) => {
 					attributeFilter: ["style", "class"],
 				});
 
-				console.log("[AIO Events] Brevo form integration ready (pass-through mode)");
+				console.log(
+					"[AIO Events] Brevo form integration ready (pass-through mode)",
+				);
 			}
 		}, 100);
 
