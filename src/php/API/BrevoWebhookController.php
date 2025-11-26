@@ -189,19 +189,25 @@ class BrevoWebhookController
         continue;
       }
       
-      // Convert key to uppercase for Brevo
+      // Convert key to uppercase for Brevo (remove [] suffix)
       $brevo_key = strtoupper(str_replace(['[]', '-'], ['', '_'], $key));
       
       // Handle arrays (checkboxes) - join with comma
       if (is_array($value)) {
-        $brevo_attributes[$brevo_key] = implode(', ', array_filter($value));
+        $filtered = array_filter(array_map('trim', $value));
+        if (!empty($filtered)) {
+          $brevo_attributes[$brevo_key] = implode(', ', $filtered);
+        }
       } else {
         $trimmed = is_string($value) ? trim($value) : $value;
         if (!empty($trimmed)) {
+          // If key ends with [] it's a single-value array field - still add it
           $brevo_attributes[$brevo_key] = $trimmed;
         }
       }
     }
+    
+    error_log('[AIO Events] Brevo attributes built: ' . wp_json_encode($brevo_attributes));
 
     // Save registration to database and add to Brevo list via API
     require_once AIO_EVENTS_PATH . 'php/Services/RegistrationService.php';
