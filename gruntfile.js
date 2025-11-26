@@ -183,6 +183,10 @@ module.exports = (grunt) => {
 			git_push: {
 				command: "git push origin main --tags",
 			},
+			gh_release: {
+				command: () =>
+					`gh release create v${getPluginVersion()} dist/<%= wp_plugin_name %>.zip --title "v${getPluginVersion()}" --notes "Release v${getPluginVersion()}"`,
+			},
 		},
 
 		cssmin: {
@@ -258,5 +262,6 @@ module.exports = (grunt) => {
 		"shell:git_commit",
 		"shell:git_tag",
 		"shell:git_push",
+		"shell:gh_release",
 	]);
 };
