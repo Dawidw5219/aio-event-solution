@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom WordPress Plugin Styles - Admin */
+/* Fix WordPress table fixed class conflict with Tailwind */
+.wp-list-table.fixed,
+table.widefat.fixed {
+	position: static !important;
+	table-layout: fixed;
+}

@@ -1,0 +1,194 @@
+{{ function('wp_nonce_field', 'aio_event_brevo_integration_nonce', 'aio_event_brevo_integration_nonce') }}
+
+{% if not api_key %}
+	<div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px;">
+		<p style="margin: 0 0 10px 0;">
+			<strong>⚠️
+				{{ function('__', 'Brevo API key not configured', 'aio-event-solution') }}</strong>
+		</p>
+		<p style="margin: 0 0 10px 0;">
+			{{ function('__', 'Configure your Brevo API key in Settings to enable automatic email list sync.', 'aio-event-solution') }}
+		</p>
+		<a href="{{ function('admin_url', 'admin.php?page=aio-events-settings') }}" class="button button-primary">
+			{{ function('__', 'Go to Settings', 'aio-event-solution') }}
+		</a>
+	</div>
+{% elseif lists_error %}
+	<div style="background: #f8d7da; border-left: 4px solid #d63638; padding: 15px;">
+		<p style="margin: 0;">
+			<strong>{{ function('__', 'Error:', 'aio-event-solution') }}</strong>
+			{{ lists_error }}
+		</p>
+	</div>
+{% else %}
+	{% if lists|length > 0 %}
+		<table class="form-table">
+			<tr>
+				<th scope="row">
+					<label for="aio_event_brevo_list_id">
+						{{ function('__', 'Brevo List for this event', 'aio-event-solution') }}
+					</label>
+				</th>
+				<td>
+					<select name="aio_event_brevo_list_id" id="aio_event_brevo_list_id" style="width: 100%;">
+						<option value="">{{ function('__', '— Select list —', 'aio-event-solution') }}</option>
+						{% for list in lists %}
+							<option value="{{ list.id }}" {% if event_list_id == list.id %} selected {% endif %}>
+								{{ list.name }}
+								({{ list.totalSubscribers }}
+								{{ function('__', 'subscribers', 'aio-event-solution') }})
+							</option>
+						{% endfor %}
+					</select>
+					<p class="description">
+						{{ function('__', 'Select Brevo list for this event.', 'aio-event-solution') }}
+					</p>
+				</td>
+			</tr>
+		</table>
+	{% endif %}
+
+	<h4 style="margin: 25px 0 15px 0; font-size: 13px; font-weight: 600;">
+		{{ function('__', 'Email Templates for this event', 'aio-event-solution') }}
+	</h4>
+	<p style="margin-top: 0; color: #646970; font-size: 13px;">
+		{{ function('__', "Email templates are ready-made email message patterns created in Brevo. Select templates that will be used for automatic email sending to participants of this event. If you don't select, global templates from settings will be used.", 'aio-event-solution') }}
+	</p>
+	<p style="margin-top: 8px; color: #646970; font-size: 13px;">
+		<a href="https://app.brevo.com/templates/listing/email" target="_blank" rel="noopener noreferrer">{{ function('__', 'Create or manage templates in Brevo', 'aio-event-solution') }}</a>
+	</p>
+
+	{% if templates_error %}
+		<div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px; margin-bottom: 15px;">
+			<p style="margin: 0;">
+				<strong>{{ function('__', 'Warning:', 'aio-event-solution') }}</strong>
+				{{ templates_error }}
+			</p>
+		</div>
+	{% endif %}
+
+	<table class="form-table">
+		<tr>
+			<th scope="row">
+				<label for="aio_event_email_template_after_registration">
+					{{ function('__', 'Template After Registration', 'aio-event-solution') }}
+				</label>
+			</th>
+			<td>
+				{{ aio_render_email_template_selector({
+					'id': 'aio_event_email_template_after_registration',
+					'name': 'aio_event_email_template_after_registration',
+					'value': event_template_after_registration,
+					'description': function('__', 'Template sent immediately after registration.', 'aio-event-solution'),
+					'empty_option_text': function('__', 'Select template', 'aio-event-solution'),
+					'show_global_option': false
+				})|raw }}
+			</td>
+		</tr>
+
+		<tr>
+			<th scope="row">
+				<label for="aio_event_email_template_before_event">
+					{{ function('__', 'Event Reminder Template', 'aio-event-solution') }}
+				</label>
+			</th>
+			<td>
+				{{ aio_render_email_template_selector({
+					'id': 'aio_event_email_template_before_event',
+					'name': 'aio_event_email_template_before_event',
+					'value': event_template_before_event,
+					'description': function('__', 'Reminder template sent before event (default 24h earlier).', 'aio-event-solution'),
+					'empty_option_text': function('__', 'Select template', 'aio-event-solution'),
+					'show_global_option': false
+				})|raw }}
+			</td>
+		</tr>
+
+		<tr>
+			<th scope="row">
+				<label for="aio_event_email_template_join_event">
+					{{ function('__', 'Event Join Template', 'aio-event-solution') }}
+				</label>
+			</th>
+			<td>
+				{{ aio_render_email_template_selector({
+					'id': 'aio_event_email_template_join_event',
+					'name': 'aio_event_email_template_join_event',
+					'value': event_template_join_event,
+					'description': function('__', 'Template sent before event start with join link (default 10 minutes before).', 'aio-event-solution'),
+					'empty_option_text': function('__', 'Select template', 'aio-event-solution'),
+					'show_global_option': false
+				})|raw }}
+			</td>
+		</tr>
+
+		<tr>
+			<th scope="row">
+				<label for="aio_event_email_template_after_event">
+					{{ function('__', 'Template After Event', 'aio-event-solution') }}
+				</label>
+			</th>
+			<td>
+				{{ aio_render_email_template_selector({
+					'id': 'aio_event_email_template_after_event',
+					'name': 'aio_event_email_template_after_event',
+					'value': event_template_after_event,
+					'description': function('__', 'Template sent after event ends (default 2h after).', 'aio-event-solution'),
+					'empty_option_text': function('__', 'Select template', 'aio-event-solution'),
+					'show_global_option': false
+				})|raw }}
+			</td>
+		</tr>
+	</table>
+
+	{# Available variables - displayed after all template selectors #}
+	<div style="margin-top: 20px; padding: 12px; background: #f6f7f7; border: 1px solid #dcdcde; border-radius: 4px; margin-bottom: 15px;">
+		<p style="margin: 0 0 8px 0; font-weight: 600; font-size: 12px; color: #1d2327;">
+			{{ function('__', 'Available variables in email content:', 'aio-event-solution') }}
+		</p>
+		<p style="margin: 0 0 8px 0; font-size: 11px; color: #646970; line-height: 1.5;">
+			{{ function('__', 'You can use these variables in Brevo email template content. Insert them in the format:', 'aio-event-solution') }}
+		</p>
+		<div style="font-size: 11px; line-height: 1.6; margin-top: 8px;">
+			{% for var in available_variables %}
+				<code style="background: #fff; padding: 2px 6px; border: 1px solid #dcdcde; border-radius: 3px; font-size: 10px; color: #2271b1; margin-right: 4px; margin-bottom: 4px; white-space: nowrap; display: inline-block;">
+					{% verbatim %}{{ params.{% endverbatim %}{{ var }}{% verbatim %} }}{% endverbatim %}
+				</code>
+			{% endfor %}
+		</div>
+	</div>
+
+	<h3 style="margin: 25px 0 15px 0; font-size: 13px; font-weight: 600; border-top: 1px solid #ddd; padding-top: 20px;">
+		{{ function('__', 'Registration Form (HTML)', 'aio-event-solution') }}
+	</h3>
+	<p style="margin-top: 0; color: #646970; font-size: 13px;">
+		{{ function('__', 'Paste Brevo form HTML code for this event. This field is required.', 'aio-event-solution') }}
+	</p>
+	<p style="margin-top: 8px; color: #646970; font-size: 13px;">
+		<a href="https://app.brevo.com/contact/forms-app/subscription" target="_blank" rel="noopener noreferrer">{{ function('__', 'Create or manage forms in Brevo', 'aio-event-solution') }}</a>
+	</p>
+
+	<table class="form-table">
+		<tr>
+			<th scope="row">
+				<label for="aio_event_brevo_form_embed">
+					{{ function('__', 'Form HTML Code', 'aio-event-solution') }}
+				</label>
+			</th>
+			<td>
+				<textarea id="aio_event_brevo_form_embed" name="aio_event_brevo_form_embed" class="large-text code" rows="10" style="font-family: monospace; font-size: 12px;" placeholder="{{ function('__', 'Paste Brevo form HTML code...', 'aio-event-solution') }}" required>{{ brevo_form_embed }}</textarea>
+				<p class="description">
+					{{ function('__', 'Paste Brevo form HTML code. The form will be intercepted to save registrations in WordPress.', 'aio-event-solution') }}
+					{% if global_form_html %}
+						<br><strong>{{ function('__', 'Global form:', 'aio-event-solution') }}</strong>
+						{{ function('__', 'Set', 'aio-event-solution') }}
+					{% else %}
+						<br><strong>{{ function('__', 'Global form:', 'aio-event-solution') }}</strong>
+						{{ function('__', 'Not set', 'aio-event-solution') }}
+					{% endif %}
+				</p>
+			</td>
+		</tr>
+	</table>
+
+{% endif %}

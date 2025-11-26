@@ -1,0 +1,154 @@
+{# Cancel scheduled emails section - above registrations table #}
+{% if scheduled_count > 0 or emails_cancelled %}
+	<div style="margin-bottom: 20px; padding: 15px; background: #fff; border: 1px solid #ccd0d4; border-left: 4px solid #2271b1;">
+		<h3 style="margin-top: 0; margin-bottom: 10px;">{{ function('__', 'Cancel Event', 'aio-event-solution') }}</h3>
+
+		{% if emails_cancelled %}
+			<div class="notice notice-info inline" style="margin-bottom: 15px;">
+				<p>
+					<strong>{{ function('__', '✓ Emails for this event have been cancelled', 'aio-event-solution') }}</strong>
+				</p>
+				<p>{{ function('__', 'Automatic email scheduling for this event is disabled. To restore, cancel emails again without cancellation flag.', 'aio-event-solution') }}</p>
+			</div>
+		{% else %}
+			<p style="margin-bottom: 15px; color: #646970;">
+				{{ function('sprintf', function('__', 'Found %d scheduled emails for this event.', 'aio-event-solution'), scheduled_count) }}
+			</p>
+		{% endif %}
+
+		<div style="margin-bottom: 15px;">
+			<label for="aio_cancel_replacement_template">
+				<strong>{{ function('__', 'Select replacement template (optional):', 'aio-event-solution') }}</strong>
+			</label>
+			<select name="aio_cancel_replacement_template" id="aio_cancel_replacement_template" style="width: 100%; margin-top: 5px;">
+				<option value="" selected>{{ function('__', '— Only cancel, do not send replacement —', 'aio-event-solution') }}</option>
+				{% if templates|length > 0 %}
+					{% for template in templates %}
+						<option value="{{ template.id }}">
+							{{ template.name }}
+						</option>
+					{% endfor %}
+				{% endif %}
+			</select>
+			<p class="description" style="margin-top: 5px;">
+				{{ function('__', 'If you select a template, it will be sent to all recipients of scheduled emails before they are cancelled.', 'aio-event-solution') }}
+			</p>
+		</div>
+
+		<button type="button" class="button button-secondary" id="aio-events-cancel-event-emails" data-event-id="{{ post_id }}">
+			{{ function('__', 'Cancel all scheduled emails for this event', 'aio-event-solution') }}
+		</button>
+
+		<div id="aio-events-cancel-emails-message" style="margin-top: 10px; display: none;"></div>
+
+		<script>
+			(function ($) {
+$('#aio-events-cancel-event-emails').on('click', function () {
+var $button = $(this);
+var $message = $('#aio-events-cancel-emails-message');
+var eventId = $button.data('event-id');
+var replacementTemplate = $('#aio_cancel_replacement_template').val();
+
+$button.prop('disabled', true).text('{{ function('__', 'Cancelling...', 'aio-event-solution')|e('js') }}');
+
+$.ajax({
+url: ajaxurl,
+type: 'POST',
+data: {
+action: 'aio_cancel_event_emails',
+event_id: eventId,
+replacement_template_id: replacementTemplate,
+nonce: '{{ cancel_nonce }}'
+},
+success: function (response) {
+if (response.success) {
+$message.html('<div class="notice notice-success inline"><p>' + response.data.message + '</p></div>').show();
+setTimeout(function () {
+location.reload();
+}, 2000);
+} else {
+$message.html('<div class="notice notice-error inline"><p>' + (
+response.data.message || '{{ function('__', 'An error occurred', 'aio-event-solution')|e('js') }}'
+) + '</p></div>').show();
+$button.prop('disabled', false).text('{{ function('__', 'Cancel all scheduled emails for this event', 'aio-event-solution')|e('js') }}');
+}
+},
+error: function () {
+$message.html('<div class="notice notice-error inline"><p>  {{ function('__', 'An error occurred while communicating with server', 'aio-event-solution')|e('js') }}</p></div>').show();
+$button.prop('disabled', false).text('{{ function('__', 'Cancel all scheduled emails for this event', 'aio-event-solution')|e('js') }}');
+}
+});
+});
+})(jQuery);
+		</script>
+	</div>
+{% endif %}
+
+{# Registrations table #}
+{% if not table_exists %}
+	<div class="notice notice-warning inline">
+		<p>{{ function('__', 'Registrations table does not exist. Create it in plugin settings.', 'aio-event-solution') }}</p>
+	</div>
+{% elseif registrations is empty %}
+	<p style="padding: 10px; background: #f0f0f1; border-left: 4px solid #2271b1;">
+		{{ function('__', 'No registrations for this event.', 'aio-event-solution') }}
+	</p>
+{% else %}
+	<p style="margin-bottom: 15px;">
+		<strong style="font-size: 14px;">{{ function('__', 'Total registrations:', 'aio-event-solution') }}</strong>
+		<span style="font-size: 16px; color: #2271b1; font-weight: bold;">{{ registrations|length }}</span>
+	</p>
+
+	<table class="wp-list-table widefat striped" style="table-layout: auto;">
+		<thead>
+			<tr>
+				<th style="width: 25%;">{{ function('__', 'Name', 'aio-event-solution') }}</th>
+				<th style="width: 30%;">{{ function('__', 'Email', 'aio-event-solution') }}</th>
+				<th style="width: 20%;">{{ function('__', 'Registration Date', 'aio-event-solution') }}</th>
+				<th style="width: 15%;">{{ function('__', 'Attendance', 'aio-event-solution') }}</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for registration in registrations %}
+				<tr>
+					<td>
+						<strong>{{ registration.name|default('—') }}</strong>
+					</td>
+					<td>
+						<a href="mailto:{{ registration.email|default('') }}">{{ registration.email|default('—') }}</a>
+					</td>
+					<td>
+						{% if registration.registered_at %}
+							{{ function('date_i18n', function('get_option', 'date_format') ~ ' ' ~ function('get_option', 'time_format'), function('strtotime', registration.registered_at)) }}
+						{% else %}
+							—
+						{% endif %}
+					</td>
+					<td>
+						{% if registration.clicked_join_link %}
+							<span style="color: #00a32a; font-weight: bold;">{{ function('__', 'Yes', 'aio-event-solution') }}</span>
+						{% else %}
+							<span style="color: #646970;">{{ function('__', 'No', 'aio-event-solution') }}</span>
+						{% endif %}
+					</td>
+				</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+
+	<div style="margin-top: 15px;">
+		<button type="button" class="button button-secondary" id="aio-export-registrations-csv" data-event-id="{{ post_id }}">
+			{{ function('__', 'Export to CSV', 'aio-event-solution') }}
+		</button>
+	</div>
+
+	<script>
+		(function ($) {
+			$('#aio-export-registrations-csv').on('click', function () {
+				var eventId = $(this).data('event-id');
+				var url = ajaxurl + '?action=aio_export_registrations_csv&event_id=' + eventId + '&nonce={{ function("wp_create_nonce", "aio_export_csv") }}';
+				window.location.href = url;
+			});
+		})(jQuery);
+	</script>
+{% endif %}

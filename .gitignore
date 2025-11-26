@@ -1,0 +1,8 @@
+node_modules/
+.vscode/
+.svn/
+.DS_Store
+.env
+
+# Generated CSS files (built from globals.css)
+src/static/css/generated/

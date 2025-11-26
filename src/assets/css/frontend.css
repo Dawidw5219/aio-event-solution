@@ -1,0 +1,89 @@
+/** biome-ignore-all lint/complexity/noImportantStyles: <External Service Override> */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Content Box */
+#aio-events-summary {
+	background-color: var(--aio-events-background, #f3f3f3);
+}
+#aio-events-content {
+	background-color: var(--aio-events-background, #f3f3f3);
+}
+#aio-events-content p {
+	margin-block-end: 0;
+}
+
+#aio-events-shortcode h1,
+#aio-events-shortcode h2,
+#aio-events-shortcode h3,
+#aio-events-shortcode h4,
+#aio-events-shortcode h5,
+#aio-events-shortcode h6 {
+	margin-block-start: 0 !important;
+	margin-block-end: 0 !important;
+}
+
+#aio-events-form {
+	background-color: var(--aio-events-background, #f3f3f3);
+}
+
+/* Brevo Form Override Start */
+#aio-events-form .sib-form {
+	padding: 0 !important;
+	background-color: transparent !important;
+}
+#aio-events-form #sib-container {
+	max-width: 100% !important;
+	padding: 0 !important;
+	border: none !important;
+	background-color: transparent !important;
+	box-shadow: none !important;
+}
+#aio-events-form #sib-container .sib-form-block {
+	padding: 0 !important;
+}
+#aio-events-form .entry__field,
+#aio-events-form .entry__choice {
+	max-width: 540px !important;
+}
+#aio-events-form .entry__error {
+	background-color: transparent !important;
+	color: red !important;
+}
+#aio-events-form .entry_errored input {
+	border: 1px solid red !important;
+}
+#aio-events-form .sib-form .input_replaced:checked + .checkbox_tick_positive {
+	background: var(--aio-events-color-primary, #2271b1) !important;
+	border-color: var(--aio-events-color-primary, #2271b1) !important;
+}
+#aio-events-form button {
+	min-width: 540px !important;
+	text-align: center !important;
+	padding: 14px 28px;
+	font-size: 16px;
+	font-weight: 600;
+	color: #fff;
+	background-color: var(--aio-events-color-primary, #2271b1) !important;
+	border: none;
+	border-radius: 6px;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+#aio-events-form button:hover {
+	background-color: var(--aio-events-color-primary-hover, #135e96);
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+	transform: translateY(-1px);
+}
+#aio-events-form button:active {
+	transform: translateY(0);
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+#aio-events-form button:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+	transform: none;
+}
+/* Brevo Form Override Stop */

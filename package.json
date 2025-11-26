@@ -1,0 +1,39 @@
+{
+	"name": "aio-event-solution",
+	"license": "GPL-2.0-or-later",
+	"scripts": {
+		"dev": "grunt dev:local",
+		"dev:ftp": "grunt dev:ftp",
+		"dev:local": "grunt dev:local",
+		"build": "grunt build",
+		"deploy": "grunt deploy",
+		"git": "git add . && git commit -m 'update' && git push origin main",
+		"svnignore:add": "svn propset svn:ignore 'FOLDER_NAME/' .",
+		"svnignore:remove": "svn rm --keep-local node_modules",
+		"svnignore:preview": "SVN_EDITOR=nano svn propedit svn:ignore .",
+		"i18n:pot": "grunt makepot",
+		"i18n:compile": "for po in src/languages/*.po; do [ -f \"$po\" ] && msgfmt \"$po\" -o \"${po%.po}.mo\" && echo \"Compiled: $(basename $po)\"; done",
+		"i18n": "pnpm i18n:pot && pnpm i18n:compile"
+	},
+	"devDependencies": {
+		"autoprefixer": "^10.4.16",
+		"dotenv": "^16.4.5",
+		"grunt": "^1.6.1",
+		"grunt-contrib-compress": "^2.0.0",
+		"grunt-contrib-copy": "^1.0.0",
+		"grunt-contrib-cssmin": "^5.0.0",
+		"grunt-contrib-uglify": "^5.2.2",
+		"grunt-contrib-watch": "^1.1.0",
+		"grunt-ftp-push": "^1.2.1",
+		"grunt-replace": "^2.0.2",
+		"grunt-sftp-deploy": "^0.2.5",
+		"grunt-shell": "^4.0.0",
+		"grunt-sync": "^0.8.2",
+		"postcss": "^8.4.32",
+		"postcss-cli": "^11.0.1",
+		"tailwindcss": "^3.4.0"
+	},
+	"dependencies": {
+		"grunt-wp-i18n": "^1.0.3"
+	}
+}

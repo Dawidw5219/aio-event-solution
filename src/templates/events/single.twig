@@ -1,0 +1,151 @@
+<article class="aio-events-single max-w-6xl mx-auto px-4 py-8">
+	<header class="mb-8">
+		<h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">{{ post.title }}</h1>
+
+		{# Date left coulumn #}
+		{% set event_date = post.meta('_aio_event_start_date') %}
+		{% set event_time = post.meta('_aio_event_start_time') %}
+		{% set event_subtitle = post.meta('_aio_event_subtitle') %}
+		{% set timezone_string = function('wp_timezone_string') %}
+		<div class="pl-1 mb-8 flex flex-col md:flex-row gap-3 items-start">
+			{% if event_date %}
+				<div class="flex-shrink-0">
+					<div class="text-3xl font-bold leading-none mb-1 text-gray-900">
+						{{ event_date|date('d') }}
+					</div>
+					<div class="text-sm uppercase font-semibold tracking-wide text-gray-700">
+						{{ event_date|date('M') }}
+					</div>
+				</div>
+			{% endif %}
+
+			{# Subtile right coulumn #}
+			<div class="flex-1">
+				{% if event_subtitle %}
+					<div class="text-xl md:text-2xl text-gray-900 leading-tight">
+						{{ event_subtitle }}
+					</div>
+				{% endif %}
+				{% if event_date or event_time %}
+					<div class="text-base text-gray-600">
+						{% if event_date %}
+							{{ event_date|date('d.m.Y') }}
+						{% endif %}
+						{% if event_time %}
+							{% if event_date %}
+								•
+							{% endif %}
+							{{ event_time }} ({{ timezone_string }})
+						{% endif %}
+					</div>
+				{% endif %}
+			</div>
+		</div>
+	</header>
+
+	{# Registration Form or Post-Event Message #}
+	{% set event_date = post.meta('_aio_event_start_date') %}
+	{% set is_past_event = event_date and event_date < "now"|date('Y-m-d') %}
+
+	<div class="flex flex-col gap-8">
+		{% if post.thumbnail %}
+			<div class="rounded-2xl overflow-hidden">
+				<img src="{{ post.thumbnail.src('large') }}" alt="{{ post.title }}" class="w-full">
+			</div>
+		{% endif %}
+
+		{% if post.content %}
+			<div id="aio-events-content" class="p-8 rounded-[15px] prose prose-lg max-w-none">
+				{{ post.content }}
+			</div>
+		{% endif %}
+
+		<div id="aio-events-form" class="p-8 rounded-[15px] prose prose-lg max-w-none">
+			{% if is_past_event %}
+				{# Event has ended - show post-event message #}
+				{% set post_event_msg = post.meta('_aio_event_post_event_message') %}
+				{% if post_event_msg %}
+					<div class="bg-gray-50 border-l-4 border-gray-400 p-8 rounded-lg">
+						<div class="prose max-w-none">
+							{{ post_event_msg|raw }}
+						</div>
+					</div>
+				{% else %}
+					<div class="bg-gray-50 border-l-4 border-gray-400 p-8 rounded-lg text-center">
+						<div class="text-gray-600 mb-4">
+							<svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+							</svg>
+						</div>
+						<h3 class="text-2xl font-bold text-gray-800 mb-2">
+							{{ function('__', 'This event has ended', 'aio-event-solution') }}
+						</h3>
+						<p class="text-gray-600">
+							{{ function('__', 'Thank you for your interest. Check out our other upcoming events!', 'aio-event-solution') }}
+						</p>
+					</div>
+				{% endif %}
+			{% else %}
+				{# Event is upcoming - show Brevo registration form #}
+				{# Form is always copied from global settings during event creation, so we always use event's own copy #}
+					<div class="brevo-form-section"> {% set brevo_form_embed = post.meta('_aio_event_brevo_form_embed') %}
+					{% if brevo_form_embed %}
+						<div
+							id="aio-events-brevo-form-wrapper" class="max-w-full mx-auto" data-event-id="{{ post.ID }}">
+							{# Success message - show if registration was successful (redirect) or hidden for AJAX #}
+							{% if registration_success %}
+								{% include 'components/registration-thank-you.twig' with {visible: true, show_email: false, event: post} %}
+							{% else %}
+								{% include 'components/registration-thank-you.twig' with {visible: false, show_email: true, event: post} %}
+							{% endif %}
+
+							{# Error message - hidden by default #}
+							<div class="aio-events-registration-error" style="display: none;">
+								<div class="bg-red-50 border-2 border-red-200 rounded-lg p-6 my-6">
+									<div class="flex items-start">
+										<svg class="w-6 h-6 text-red-600 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+										</svg>
+										<span class="aio-events-error-message-text text-red-800"></span>
+									</div>
+								</div>
+							</div>
+
+							{# Brevo form wrapper - will be hidden after successful registration #}
+							<div class="aio-events-brevo-form-container">
+								{{ brevo_form_embed|raw }}
+							</div>
+						</div>
+					{% endif %}
+				</div>
+			{% endif %}
+		</div>
+	</div>
+
+	{# Event Categories #}
+	{% set categories = post.terms('aio_event_category') %}
+	{% if categories %}
+		<div class="border-t border-gray-200 mt-12">
+			<div class="flex flex-wrap gap-2 items-center">
+				<strong class="text-gray-700 mr-2">{{ function('__', 'Categories', 'aio-event-solution') }}:</strong>
+				{% for category in categories %}
+					{% include 'components/category-badge.twig' with {category: category} %}
+				{% endfor %}
+			</div>
+		</div>
+	{% endif %}
+
+	{# Event Tags #}
+	{% if post.terms('aio_event_tag') %}
+		<div class="pt-8 border-t border-gray-200 space-y-4 mt-12">
+			<div>
+				<strong class="text-gray-700">{{ function('__', 'Tags', 'aio-event-solution') }}:</strong>
+				{% for tag in post.terms('aio_event_tag') %}
+					<a href="{{ tag.link }}" class="inline-block px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors ml-2">
+						#{{ tag.name }}
+					</a>
+				{% endfor %}
+			</div>
+		</div>
+	{% endif %}
+</article>
