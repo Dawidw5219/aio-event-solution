@@ -1,0 +1,121 @@
+{# Registration Thank You Component #}
+{# 
+  Parameters:
+  - visible: boolean - whether to show immediately (for redirect) or hide (for AJAX)
+  - show_email: boolean - whether to show email field (for AJAX)
+  - event: Timber\Post - event post object (optional)
+#}
+{% set visible = visible|default(false) %}
+{% set show_email = show_email|default(false) %}
+{% set event = event|default(null) %}
+
+{% set event_date = event ? event.meta('_aio_event_start_date') : null %}
+{% set event_time = event ? event.meta('_aio_event_start_time') : null %}
+{% set event_subtitle = event ? event.meta('_aio_event_subtitle') : null %}
+{% set timezone_string = function('wp_timezone_string') %}
+{# Calculate UTC timestamps from event date/time in WP timezone #}
+{% set utc_times = function('AIOEvents\\aio_event_utc_times', event_date, event_time, 1) %}
+
+	<div class="aio-events-registration-success" {% if not visible %} style="display: none;" {% endif %} {% if event %} data-event-title="{{ event.title|e('html_attr') }}" data-event-subtitle="{{ event_subtitle|e('html_attr') }}" data-event-id="{{ event.ID }}" data-utc-start="{{ utc_times.start }}" data-utc-end="{{ utc_times.end }}" data-calendar-notice="{{ function('__', 'The event link will be sent to your registered email shortly before the event starts.', 'aio-event-solution')|e('html_attr') }}" {% endif %}> <div class="bg-green-50 border-2 border-green-200 rounded-2xl text-center overflow-hidden p-8">
+		<div class="mb-4">
+			<svg class="w-16 h-16 mx-auto text-green-600" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+			</svg>
+		</div>
+		<h3 class="text-2xl font-bold text-green-800 mb-4">
+			{{ function('__', 'Thank you for registering!', 'aio-event-solution') }}
+		</h3>
+
+		{# Add to Calendar buttons - right after title #}
+		{% if event and event_date %}
+			<div
+				class="flex flex-wrap justify-center gap-2 mb-6">
+				{# Google Calendar - official Google Calendar icon from Simple Icons #}
+				<a href="#" class="aio-calendar-btn aio-calendar-google inline-flex items-center gap-2 px-4 py-2 bg-white border border-green-300 rounded-lg text-sm font-medium text-green-800 hover:bg-green-100 transition-colors">
+					<svg class="w-5 h-5" viewbox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+						<path d="M18.316 5.684H24v12.632h-5.684V5.684zM5.684 24h12.632v-5.684H5.684V24zM18.316 5.684V0H1.895A1.894 1.894 0 0 0 0 1.895v16.421h5.684V5.684h12.632z" fill="#4285F4"/>
+						<path d="M5.684 18.316H0v3.789A1.894 1.894 0 0 0 1.895 24h3.789v-5.684z" fill="#34A853"/>
+						<path d="M24 5.684V1.895A1.894 1.894 0 0 0 22.105 0h-3.789v5.684H24z" fill="#EA4335"/>
+						<path d="M22.105 24a1.894 1.894 0 0 0 1.895-1.895v-3.789h-5.684V24h3.789z" fill="#FBBC04"/>
+						<path d="M11.109 11.934v-.065c.272-.144.5-.349.687-.617s.279-.595.279-.982c0-.379-.099-.72-.3-1.025a2.05 2.05 0 0 0-.832-.714 2.703 2.703 0 0 0-1.197-.257c-.6 0-1.094.156-1.481.467-.386.311-.65.671-.793 1.078l1.085.452c.086-.249.224-.461.413-.633.189-.172.445-.257.767-.257.33 0 .602.088.816.264a.86.86 0 0 1 .322.703c0 .33-.12.589-.36.778-.24.19-.535.284-.886.284h-.567v1.085h.633c.407 0 .748.109 1.02.327.272.218.407.499.407.843 0 .336-.129.614-.387.832s-.565.327-.924.327c-.351 0-.651-.103-.897-.311-.248-.208-.422-.502-.521-.881l-1.096.452c.178.616.505 1.082.977 1.401.472.319 1.023.478 1.652.478.39 0 .739-.076 1.048-.228.31-.152.583-.36.82-.624.237-.264.419-.574.545-.93.126-.356.189-.734.189-1.134 0-.466-.119-.869-.357-1.21a2.342 2.342 0 0 0-.95-.801z" fill="#4285F4"/>
+						<path d="M17.399 9.009c-.428 0-.835.066-1.224.196a2.678 2.678 0 0 0-.975.532 2.497 2.497 0 0 0-.637.808 2.187 2.187 0 0 0-.223 1.023l1.052.322c-.043-.379.032-.712.223-.997.191-.285.478-.427.864-.427.322 0 .59.115.806.345.215.23.322.54.322.928v.193c-.256-.147-.588-.22-.997-.22-.44 0-.824.098-1.153.295a2.13 2.13 0 0 0-.768.795c-.182.329-.273.685-.273 1.067 0 .39.094.733.28 1.028.186.294.44.52.763.676a2.35 2.35 0 0 0 1.065.235c.322 0 .61-.063.864-.189.254-.126.46-.294.618-.505h.042v.596h1.074V9.836c0-.729-.192-1.304-.577-1.727-.384-.424-.924-.635-1.62-.635zm.59 5.291c-.226.161-.49.241-.79.241-.322 0-.574-.083-.755-.25-.181-.167-.272-.381-.272-.644 0-.322.108-.574.322-.755.215-.181.483-.272.806-.272.246 0 .47.052.672.158v.842a.958.958 0 0 1-.256.68z" fill="#4285F4"/>
+					</svg>
+					Google
+				</a>
+
+				{# Outlook Calendar - Microsoft Outlook icon #}
+				<a href="#" class="aio-calendar-btn aio-calendar-outlook inline-flex items-center gap-2 px-4 py-2 bg-white border border-green-300 rounded-lg text-sm font-medium text-green-800 hover:bg-green-100 transition-colors">
+					<svg class="w-5 h-5" viewbox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+						<path d="M24 7.387v10.478c0 .23-.08.424-.238.576a.806.806 0 01-.59.234h-8.86v-6.521l1.496 1.063a.39.39 0 00.478 0l7.714-5.457V7.387z" fill="#0072C6"/>
+						<path d="M8.858 9.088l.578-.303.372-.188 4.475-2.263c.163-.085.32-.085.478 0l.372.188 8.867 4.49V7.387a.806.806 0 00-.238-.576.806.806 0 00-.59-.234H9.74l-.882 2.511z" fill="#0072C6"/>
+						<path d="M8.858 9.088v6.066h5.454V12.35l-5.454-3.262z" fill="#0072C6"/>
+						<path d="M14.312 6.577V18.17l-5.454-3.014V9.088l5.454-2.511z" fill="#0072C6"/>
+						<path d="M0 5.39v13.22c0 .39.132.722.396.996.263.274.587.41.972.41h12.944V5.984H1.368c-.385 0-.71.137-.972.41A1.391 1.391 0 000 7.39v-2z" fill="#0072C6"/>
+						<path d="M7.113 8.74c-.627 0-1.164.132-1.61.396-.446.264-.79.643-1.031 1.138-.24.494-.36 1.082-.36 1.763 0 .66.116 1.234.35 1.721.231.488.56.863.987 1.126.427.264.934.396 1.521.396.621 0 1.154-.132 1.597-.396.444-.264.785-.639 1.023-1.126.238-.487.357-1.061.357-1.72 0-.67-.117-1.251-.35-1.745-.234-.494-.567-.875-.999-1.145-.432-.27-.945-.405-1.537-.408h.052zm-.052 1.194c.337 0 .616.087.836.262.22.175.385.42.494.735.11.315.165.682.165 1.1 0 .413-.055.78-.165 1.1-.11.322-.277.573-.502.754-.225.18-.506.271-.843.271-.343 0-.627-.09-.852-.271-.225-.18-.393-.432-.502-.754a3.42 3.42 0 01-.165-1.1c0-.418.055-.785.165-1.1.11-.315.277-.56.502-.735.225-.175.506-.262.843-.262h.024z" fill="white"/>
+					</svg>
+					Outlook
+				</a>
+
+				{# Download .ics file #}
+				<a href="#" class="aio-calendar-btn aio-calendar-ics inline-flex items-center gap-2 px-4 py-2 bg-white border border-green-300 rounded-lg text-sm font-medium text-green-800 hover:bg-green-100 transition-colors">
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+					</svg>
+					{{ function('__', 'Download .ics', 'aio-event-solution') }}
+				</a>
+			</div>
+		{% endif %}
+
+		{# Event information #}
+		{% if event %}
+			<div class="mb-4 pt-4 border-t border-green-200">
+				<h4 class="text-lg font-semibold text-green-900 mb-2">
+					{{ event.title }}
+				</h4>
+
+				{% if event_subtitle %}
+					<p class="text-green-800 mb-2">
+						{{ event_subtitle }}
+					</p>
+				{% endif %}
+
+				{% if event_date or event_time %}
+					<div class="flex items-center justify-center gap-2 text-green-700">
+						{% if event_date %}
+							<div class="flex items-center gap-1">
+								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+								</svg>
+								<span>{{ event_date|date('d.m.Y') }}</span>
+							</div>
+						{% endif %}
+						{% if event_time %}
+							{% if event_date %}
+								<span>•</span>
+							{% endif %}
+							<div class="flex items-center gap-1">
+								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+								</svg>
+								<span>{{ event_time }}
+									({{ timezone_string }})</span>
+							</div>
+						{% endif %}
+					</div>
+				{% endif %}
+			</div>
+		{% endif %}
+
+		{# Email confirmation message #}
+		{% if show_email %}
+			<p class="aio-events-success-email text-green-700 mt-4">
+				{{ function('__', 'Confirmation email has been sent to:', 'aio-event-solution') }}
+				<strong class="aio-events-success-email-value block mt-2 text-lg text-green-800"></strong>
+			</p>
+		{% else %}
+			<p class="text-green-700 mt-4">
+				{{ function('__', 'Confirmation email has been sent.', 'aio-event-solution') }}
+			</p>
+		{% endif %}
+	</div>
+</div>

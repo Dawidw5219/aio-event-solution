@@ -1,0 +1,111 @@
+{{ function('wp_nonce_field', 'aio_event_details_nonce', 'aio_event_details_nonce') }}
+
+<style>
+	.aio-events-meta-box {
+		background: #fff;
+	}
+	.aio-events-meta-box .form-table th {
+		padding: 20px 10px 20px 0;
+		width: 200px;
+	}
+	.aio-events-meta-box .form-table td {
+		padding: 20px 10px;
+	}
+	.aio-events-meta-box input[type="date"],
+	.aio-events-meta-box input[type="time"],
+	.aio-events-meta-box input[type="text"] {
+		width: 100%;
+		max-width: 400px;
+		padding: 8px 12px;
+		font-size: 14px;
+	}
+	.aio-events-meta-box .description {
+		margin-top: 8px;
+		color: #646970;
+		font-style: italic;
+	}
+	.aio-events-field-group {
+		display: flex;
+		gap: 10px;
+		align-items: center;
+	}
+	.aio-events-field-group input[type="date"] {
+		flex: 2;
+	}
+	.aio-events-field-group input[type="time"] {
+		flex: 1;
+	}
+</style>
+
+<div class="aio-events-meta-box">
+	<table class="form-table">
+		<tr>
+			<th>
+				<label for="aio_event_subtitle">
+					{{ function('__', 'Subtitle / Prelegent', 'aio-event-solution') }}
+				</label>
+			</th>
+			<td>
+				<input type="text" id="aio_event_subtitle" name="aio_event_subtitle" value="{{ subtitle }}" placeholder="{{ function('__', 'np. Dr. John Smith, Clinical Scientist at...', 'aio-event-solution') }}">
+				<p class="description">
+					{{ function('__', 'Optional subtitle or speaker description displayed under event title', 'aio-event-solution') }}
+				</p>
+			</td>
+		</tr>
+
+		<tr>
+			<th>
+				<label for="aio_event_start_date">
+					{{ function('__', 'Start Date', 'aio-event-solution') }}
+					<span style="color: #d63638;">*</span>
+				</label>
+			</th>
+			<td>
+				<div class="aio-events-field-group">
+					<input type="date" id="aio_event_start_date" name="aio_event_start_date" value="{{ start_date }}" required>
+
+					<input type="time" id="aio_event_start_time" name="aio_event_start_time" value="{{ start_time }}" placeholder="np. 18:00">
+				</div>
+				<p class="description">
+					{{ function('__', 'Time is optional. If event lasts all day, leave empty.', 'aio-event-solution') }}
+				</p>
+			</td>
+		</tr>
+
+		<tr>
+			<th>
+				<label for="aio_event_stream_url">
+					{{ function('__', 'Stream URL', 'aio-event-solution') }}
+				</label>
+			</th>
+			<td>
+				<input type="url" id="aio_event_stream_url" name="aio_event_stream_url" value="{{ stream_url }}" placeholder="{{ function('__', 'https://youtube.com/watch?v=... or https://twitch.tv/...', 'aio-event-solution') }}" style="width: 100%; max-width: 600px;">
+				<p class="description">
+					{{ function('__', 'Link to event streaming (YouTube, Twitch, etc.). Users will be redirected to this link when clicking the join link.', 'aio-event-solution') }}
+				</p>
+			</td>
+		</tr>
+
+		<tr>
+			<th>
+				<label for="aio_event_post_event_message">
+					{{ function('__', 'Post-Event Message', 'aio-event-solution') }}
+				</label>
+			</th>
+			<td>
+				{{ function('wp_editor', post_event_message, 'aio_event_post_event_message', {
+          'textarea_name': 'aio_event_post_event_message',
+          'textarea_rows': 8,
+          'media_buttons': true,
+          'teeny': false,
+          'tinymce': {
+            'toolbar1': 'formatselect,bold,italic,underline,bullist,numlist,link,unlink,blockquote,alignleft,aligncenter,alignright,undo,redo'
+          }
+        }) }}
+				<p class="description">
+					{{ function('__', 'Optional message displayed after event ends (instead of registration form).', 'aio-event-solution') }}
+				</p>
+			</td>
+		</tr>
+	</table>
+</div>

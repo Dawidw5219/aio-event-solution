@@ -1,0 +1,177 @@
+<div class="my-8" id="aio-events-shortcode">
+	{% if grouped_events %}
+		<div class="space-y-8">
+			{% for group_key, group in grouped_events %}
+				{% if group_key == 'unsorted' %}
+					{# Unsorted events (without date) #}
+					<div class="space-y-4">
+						{% for event in group %}
+							{% set event_date = event.meta('_aio_event_start_date') %}
+							{% set event_time = event.meta('_aio_event_start_time') %}
+							{% set event_subtitle = event.meta('_aio_event_subtitle') %}
+							{% set categories = event.terms('aio_event_category') %}
+
+							{# Get color from first category #}
+							{% set bg_color = '#2271b1' %}
+							{% set text_color = '#ffffff' %}
+							{% if categories %}
+								{% set first_category = categories[0] %}
+								{% set cat_bg = function('get_term_meta', first_category.id, 'category_bg_color', true) %}
+								{% set cat_text = function('get_term_meta', first_category.id, 'category_text_color', true) %}
+								{% if cat_bg %}
+									{% set bg_color = cat_bg %}
+								{% endif %}
+								{% if cat_text %}
+									{% set text_color = cat_text %}
+								{% endif %}
+							{% endif %}
+
+							<div>
+								<a href="{{ event.link }}" style="background-color: {{ bg_color }}; color: {{ text_color }}; text-decoration: none;" class="block w-full rounded-2xl overflow-hidden hover:opacity-90 transition-opacity duration-300 shadow-lg p-6 md:p-8">
+									<div class="pl-1 mb-8 flex flex-col md:flex-row gap-10 items-start">
+										{% if event_date %}
+											{% set event_timestamp = function('strtotime', event_date) %}
+											<div class="flex-shrink-0">
+												<div class="text-3xl font-bold leading-none mb-1" style="color: {{ text_color }};">
+													{{ function('date_i18n', 'd', event_timestamp) }}
+												</div>
+												<div class="text-sm uppercase font-semibold tracking-wide" style="color: {{ text_color }}; opacity: 0.9;">
+													{{ function('date_i18n', 'M', event_timestamp) }}
+												</div>
+											</div>
+										{% endif %}
+
+										<div class="flex-1">
+											<h3 class="mt-0 text-2xl font-bold mb-6 break-words" style="color: {{ text_color }};">
+												{{ event.title }}
+											</h3>
+
+											{% if event_subtitle %}
+												<div class="text-xl md:text-2xl leading-tight mb-2" style="color: {{ text_color }};">
+													{{ event_subtitle }}
+												</div>
+											{% endif %}
+
+											{% if event_date or event_time %}
+												<div class="text-base" style="color: {{ text_color }}; opacity: 0.9;">
+													{% if event_date %}
+														{% set event_timestamp = function('strtotime', event_date) %}
+														{{ function('date_i18n', 'd.m.Y', event_timestamp) }}
+													{% endif %}
+													{% if event_time %}
+														{% if event_date %}
+															•
+														{% endif %}
+														{{ event_time }}
+													{% endif %}
+												</div>
+											{% endif %}
+										</div>
+									</div>
+								</a>
+							</div>
+						{% endfor %}
+					</div>
+				{% else %}
+					{# Grouped by month and year #}
+					<div
+						class="space-y-4">
+						{# Month/Year header - only show if multiple months #}
+						{% if show_month_headers %}
+							{% set month_date_string = group.year ~ '-' ~ group.month ~ '-01' %}
+							{% set month_timestamp = function('strtotime', month_date_string) %}
+							{% set month_name = function('date_i18n', 'F', month_timestamp) %}
+							<h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4">
+								{{ month_name }}
+								{{ group.year }}
+							</h2>
+						{% endif %}
+
+						{# Events for this month #}
+						<div class="space-y-4">
+							{% for event in group.events %}
+								{% set event_date = event.meta('_aio_event_start_date') %}
+								{% set event_time = event.meta('_aio_event_start_time') %}
+								{% set event_subtitle = event.meta('_aio_event_subtitle') %}
+								{% set categories = event.terms('aio_event_category') %}
+
+								{# Get color from first category #}
+								{% set bg_color = '#2271b1' %}
+								{% set text_color = '#ffffff' %}
+								{% if categories %}
+									{% set first_category = categories[0] %}
+									{% set cat_bg = function('get_term_meta', first_category.id, 'category_bg_color', true) %}
+									{% set cat_text = function('get_term_meta', first_category.id, 'category_text_color', true) %}
+									{% if cat_bg %}
+										{% set bg_color = cat_bg %}
+									{% endif %}
+									{% if cat_text %}
+										{% set text_color = cat_text %}
+									{% endif %}
+								{% endif %}
+
+								<div>
+									<a
+										href="{{ event.link }}" style="background-color: {{ bg_color }}; color: {{ text_color }}; text-decoration: none;" class="block w-full rounded-2xl overflow-hidden hover:opacity-90 transition-opacity duration-300 shadow-lg p-6 md:p-8">
+										{# Date left, Title and Content right - same structure as single.twig #}
+										<div
+											class="pl-1 mb-8 flex flex-col md:flex-row gap-10 items-start">
+											{# Date left column #}
+											{% if event_date %}
+												{% set event_timestamp = function('strtotime', event_date) %}
+												<div class="flex-shrink-0">
+													<div class="text-3xl font-bold leading-none mb-1" style="color: {{ text_color }};">
+														{{ function('date_i18n', 'd', event_timestamp) }}
+													</div>
+													<div class="text-sm uppercase font-semibold tracking-wide" style="color: {{ text_color }}; opacity: 0.9;">
+														{{ function('date_i18n', 'M', event_timestamp) }}
+													</div>
+												</div>
+											{% endif %}
+
+											{# Content right column: Title, Subtitle, Date/Time #}
+											<div
+												class="flex-1">
+												{# Title #}
+												<h3 class="mt-0 text-2xl font-bold mb-6 break-words" style="color: {{ text_color }};">
+													{{ event.title }}
+												</h3>
+
+												{# Subtitle #}
+												{% if event_subtitle %}
+													<div class="text-xl md:text-2xl leading-tight mb-2" style="color: {{ text_color }};">
+														{{ event_subtitle }}
+													</div>
+												{% endif %}
+
+												{# Date and Time #}
+												{% if event_date or event_time %}
+													<div class="text-base" style="color: {{ text_color }}; opacity: 0.9;">
+														{% if event_date %}
+															{% set event_timestamp = function('strtotime', event_date) %}
+															{{ function('date_i18n', 'd.m.Y', event_timestamp) }}
+														{% endif %}
+														{% if event_time %}
+															{% if event_date %}
+																•
+															{% endif %}
+															{{ event_time }}
+														{% endif %}
+													</div>
+												{% endif %}
+											</div>
+										</div>
+									</a>
+								</div>
+							{% endfor %}
+						</div>
+					</div>
+				{% endif %}
+			{% endfor %}
+		</div>
+	{% else %}
+		<div class="text-center py-16">
+			<p class="text-xl text-gray-500">{{ function('__', 'No upcoming events.', 'aio-event-solution') }}</p>
+		</div>
+	{% endif %}
+</div>
