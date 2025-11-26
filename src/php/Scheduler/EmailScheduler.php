@@ -592,10 +592,13 @@ class EmailScheduler
    */
   public static function send_registration_email($event_id, $email, $name)
   {
-    // Debug: log each call to track double-send issues
-    $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3);
-    $caller = isset($backtrace[1]) ? ($backtrace[1]['class'] ?? '') . '::' . ($backtrace[1]['function'] ?? '') : 'unknown';
-    error_log('[AIO Events] send_registration_email called - email: ' . $email . ', event_id: ' . $event_id . ', caller: ' . $caller);
+    // Prevent duplicate sends using transient (30 second window)
+    $transient_key = 'aio_email_sent_' . md5($event_id . '_' . $email);
+    if (get_transient($transient_key)) {
+      error_log('[AIO Events] DUPLICATE BLOCKED (transient) - email: ' . $email . ', event: ' . $event_id);
+      return true;
+    }
+    set_transient($transient_key, true, 30); // Block duplicates for 30 seconds
     
     $event_template_id = absint(get_post_meta($event_id, '_aio_event_email_template_after_registration', true));
     $settings = get_option('aio_events_settings', []);

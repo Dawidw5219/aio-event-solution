@@ -219,6 +219,22 @@ jQuery(document).ready(($) => {
 
 	// Brevo Form - intercept and handle via our API (adds to Brevo + saves registration)
 	(() => {
+		// Block ALL requests to sibforms.com (Brevo's form endpoint)
+		const originalXHROpen = XMLHttpRequest.prototype.open;
+		XMLHttpRequest.prototype.open = function(method, url) {
+			if (url && url.toString().includes('sibforms.com')) {
+				console.log('[AIO Events] Blocked Brevo XHR:', url);
+				this._blocked = true;
+				return;
+			}
+			return originalXHROpen.apply(this, arguments);
+		};
+		const originalXHRSend = XMLHttpRequest.prototype.send;
+		XMLHttpRequest.prototype.send = function() {
+			if (this._blocked) return;
+			return originalXHRSend.apply(this, arguments);
+		};
+
 		const checkForm = setInterval(() => {
 			const originalForm = document.querySelector("#sib-form");
 			if (!originalForm) return;
