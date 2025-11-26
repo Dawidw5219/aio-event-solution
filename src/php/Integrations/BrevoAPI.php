@@ -128,6 +128,8 @@ class BrevoAPI
       $body['attributes'] = $attributes;
     }
 
+    error_log('[AIO Events] Brevo API Request body: ' . wp_json_encode($body));
+
     $response = wp_remote_post($this->api_url . '/contacts', [
       'headers' => [
         'api-key' => $this->api_key,
@@ -138,12 +140,15 @@ class BrevoAPI
     ]);
 
     if (is_wp_error($response)) {
+      error_log('[AIO Events] Brevo API WP Error: ' . $response->get_error_message());
       return $response;
     }
 
     $response_code = wp_remote_retrieve_response_code($response);
     $response_body = wp_remote_retrieve_body($response);
     $data = json_decode($response_body, true);
+
+    error_log('[AIO Events] Brevo API Response: code=' . $response_code . ', body=' . $response_body);
 
     // 201 = created, 204 = updated
     if (!in_array($response_code, [201, 204])) {

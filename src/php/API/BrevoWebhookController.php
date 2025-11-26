@@ -189,32 +189,53 @@ class BrevoWebhookController
         continue;
       }
       
+      // Check if this is an array field (checkbox with [])
+      $is_array_field = str_ends_with($key, '[]');
+      
       // Convert key to uppercase for Brevo (remove [] suffix)
       $brevo_key = strtoupper(str_replace(['[]', '-'], ['', '_'], $key));
       
-      // Handle arrays (checkboxes) - join with comma
+      // Handle arrays (checkboxes) - keep as array for Brevo multi-select
       if (is_array($value)) {
-        $filtered = array_filter(array_map('trim', $value));
+        $filtered = array_values(array_filter(array_map('trim', $value)));
         if (!empty($filtered)) {
-          $brevo_attributes[$brevo_key] = implode(', ', $filtered);
+          // Send as array for multi-select fields in Brevo
+          $brevo_attributes[$brevo_key] = $filtered;
         }
       } else {
         $trimmed = is_string($value) ? trim($value) : $value;
         if (!empty($trimmed)) {
-          // If key ends with [] it's a single-value array field - still add it
-          $brevo_attributes[$brevo_key] = $trimmed;
+          // If original key had [] but value is string, wrap in array
+          if ($is_array_field) {
+            $brevo_attributes[$brevo_key] = [$trimmed];
+          } else {
+            $brevo_attributes[$brevo_key] = $trimmed;
+          }
         }
       }
     }
     
     error_log('[AIO Events] Brevo attributes built: ' . wp_json_encode($brevo_attributes));
 
+    // Debug: capture what we're sending
+    $debug = [
+      'form_data_raw' => $form_data,
+      'brevo_attributes' => $brevo_attributes,
+      'email' => $email,
+      'name' => $name,
+      'event_id' => $event_id,
+    ];
+
     // Save registration to database and add to Brevo list via API
     require_once AIO_EVENTS_PATH . 'php/Services/RegistrationService.php';
     $result = \AIOEvents\Services\RegistrationService::register($event_id, $email, $name, '', $brevo_attributes);
 
     if (is_wp_error($result)) {
-      return new \WP_Error('db_error', $result->get_error_message(), ['status' => 500]);
+      return new \WP_REST_Response([
+        'success' => false,
+        'message' => $result->get_error_message(),
+        'debug' => $debug,
+      ], 500);
     }
 
     // Return success response
@@ -228,10 +249,14 @@ class BrevoWebhookController
       exit;
     }
 
+    // Get debug info from RegistrationService
+    $debug['brevo_sync'] = \AIOEvents\Services\RegistrationService::$debug_info;
+
     return new \WP_REST_Response([
       'success' => true,
       'message' => $message,
       'email' => $email,
+      'debug' => $debug,
     ], 200);
   }
 }
