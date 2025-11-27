@@ -1,0 +1,316 @@
+<div class="wrap">
+	<h1>{{ function('__', 'Activity Logs', 'aio-event-solution') }}</h1>
+
+	<div class="aio-logs-stats">
+		<div class="stat-box">
+			<span class="stat-number">{{ stats.total }}</span>
+			<span class="stat-label">{{ function('__', 'Total', 'aio-event-solution') }}</span>
+		</div>
+		<div class="stat-box stat-success">
+			<span class="stat-number">{{ stats.success }}</span>
+			<span class="stat-label">{{ function('__', 'Success', 'aio-event-solution') }}</span>
+		</div>
+		<div class="stat-box stat-error">
+			<span class="stat-number">{{ stats.errors }}</span>
+			<span class="stat-label">{{ function('__', 'Errors', 'aio-event-solution') }}</span>
+		</div>
+	</div>
+
+	<div class="tablenav top">
+		<div class="alignleft actions">
+			<select name="type" id="type-filter">
+				<option value="">{{ function('__', 'All types', 'aio-event-solution') }}</option>
+				{% for type_key, type_label in types %}
+					<option value="{{ type_key }}" {{ type_filter == type_key ? 'selected' : '' }}>{{ type_label }}</option>
+				{% endfor %}
+			</select>
+			<select name="status" id="status-filter">
+				<option value="">{{ function('__', 'All statuses', 'aio-event-solution') }}</option>
+				<option value="success" {{ status_filter == 'success' ? 'selected' : '' }}>{{ function('__', 'Success', 'aio-event-solution') }}</option>
+				<option value="error" {{ status_filter == 'error' ? 'selected' : '' }}>{{ function('__', 'Error', 'aio-event-solution') }}</option>
+				<option value="warning" {{ status_filter == 'warning' ? 'selected' : '' }}>{{ function('__', 'Warning', 'aio-event-solution') }}</option>
+				<option value="info" {{ status_filter == 'info' ? 'selected' : '' }}>{{ function('__', 'Info', 'aio-event-solution') }}</option>
+			</select>
+			<button type="button" class="button" onclick="applyFilters()">
+				{{ function('__', 'Filter', 'aio-event-solution') }}
+			</button>
+			<button type="button" class="button" onclick="window.location.href = '?page=aio-events-logs'">
+				{{ function('__', 'Reset', 'aio-event-solution') }}
+			</button>
+		</div>
+		<div class="alignright">
+			<button type="button" class="button button-secondary" id="clear-logs-btn">
+				{{ function('__', 'Clear All Logs', 'aio-event-solution') }}
+			</button>
+		</div>
+
+		{% if total_pages > 1 %}
+			<div class="tablenav-pages">
+				<span class="displaying-num">{{ function('__', '%d items', 'aio-event-solution')|format(total_count) }}</span>
+				{{ pagination|raw }}
+			</div>
+		{% endif %}
+	</div>
+
+	<table class="wp-list-table widefat fixed striped">
+		<thead>
+			<tr>
+				<th scope="col" class="manage-column column-time" style="width: 150px;">{{ function('__', 'Time', 'aio-event-solution') }}</th>
+				<th scope="col" class="manage-column column-type" style="width: 120px;">{{ function('__', 'Type', 'aio-event-solution') }}</th>
+				<th scope="col" class="manage-column column-action" style="width: 150px;">{{ function('__', 'Action', 'aio-event-solution') }}</th>
+				<th scope="col" class="manage-column column-message">{{ function('__', 'Message', 'aio-event-solution') }}</th>
+				<th scope="col" class="manage-column column-status" style="width: 80px;">{{ function('__', 'Status', 'aio-event-solution') }}</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% if logs is empty %}
+				<tr>
+					<td colspan="5" style="text-align: center; padding: 20px;">
+						{{ function('__', 'No logs found', 'aio-event-solution') }}
+					</td>
+				</tr>
+			{% else %}
+				{% for log in logs %}
+					<tr class="log-row log-status-{{ log.status }}">
+						<td>
+							<span class="log-time">{{ function('date_i18n', datetime_format, log.created_at|date('U')) }}</span>
+						</td>
+						<td>
+							<span class="log-type log-type-{{ log.type }}">
+								{{ types[log.type] ?? log.type }}
+							</span>
+						</td>
+						<td>
+							<code class="log-action">{{ log.action }}</code>
+						</td>
+						<td>
+							<div class="log-message">{{ log.message }}</div>
+							{% if log.email %}
+								<div class="log-email">
+									<small>📧
+										{{ log.email }}</small>
+								</div>
+							{% endif %}
+							{% if log.event_id %}
+								<div class="log-event">
+									<small>
+										🎫
+										<a href="{{ function('get_edit_post_link', log.event_id) }}">Event #{{ log.event_id }}</a>
+									</small>
+								</div>
+							{% endif %}
+							{% if log.context %}
+								<details class="log-context">
+									<summary>{{ function('__', 'Details', 'aio-event-solution') }}</summary>
+									<pre>{{ log.context }}</pre>
+								</details>
+							{% endif %}
+						</td>
+						<td>
+							<span class="log-status-badge log-status-{{ log.status }}">
+								{{ log.status }}
+							</span>
+						</td>
+					</tr>
+				{% endfor %}
+			{% endif %}
+		</tbody>
+	</table>
+
+	{% if total_pages > 1 %}
+		<div class="tablenav bottom">
+			<div class="tablenav-pages">
+				{{ pagination|raw }}
+			</div>
+		</div>
+	{% endif %}
+</div>
+
+<style>
+	.aio-logs-stats {
+		display: flex;
+		gap: 15px;
+		margin-bottom: 20px;
+	}
+	.stat-box {
+		background: #fff;
+		border: 1px solid #c3c4c7;
+		border-radius: 4px;
+		padding: 15px 25px;
+		text-align: center;
+	}
+	.stat-box .stat-number {
+		display: block;
+		font-size: 24px;
+		font-weight: 600;
+		color: #1d2327;
+	}
+	.stat-box .stat-label {
+		color: #646970;
+		font-size: 12px;
+	}
+	.stat-box.stat-success .stat-number {
+		color: #00a32a;
+	}
+	.stat-box.stat-error .stat-number {
+		color: #d63638;
+	}
+
+	.log-row.log-status-error {
+		background-color: #fcf0f1;
+	}
+	.log-row.log-status-warning {
+		background-color: #fcf9e8;
+	}
+
+	.log-type {
+		display: inline-block;
+		padding: 2px 8px;
+		border-radius: 3px;
+		font-size: 11px;
+		background: #f0f0f1;
+	}
+	.log-type-email_scheduled {
+		background: #e7f3ff;
+		color: #0073aa;
+	}
+	.log-type-email_sent {
+		background: #e6f9e6;
+		color: #006600;
+	}
+	.log-type-email_failed {
+		background: #fcf0f1;
+		color: #d63638;
+	}
+	.log-type-api_request {
+		background: #f3e6ff;
+		color: #660099;
+	}
+	.log-type-api_response {
+		background: #e6f0ff;
+		color: #004085;
+	}
+	.log-type-registration {
+		background: #fff3e6;
+		color: #996600;
+	}
+	.log-type-cron {
+		background: #e6ffe6;
+		color: #006600;
+	}
+
+	.log-action {
+		font-size: 11px;
+		background: #f6f7f7;
+		padding: 2px 6px;
+		border-radius: 2px;
+	}
+
+	.log-message {
+		margin-bottom: 5px;
+	}
+	.log-email,
+	.log-event {
+		color: #646970;
+		margin-top: 3px;
+	}
+	.log-email a,
+	.log-event a {
+		color: #2271b1;
+		text-decoration: none;
+	}
+
+	.log-context {
+		margin-top: 8px;
+	}
+	.log-context summary {
+		cursor: pointer;
+		color: #2271b1;
+		font-size: 12px;
+	}
+	.log-context pre {
+		background: #f6f7f7;
+		padding: 10px;
+		font-size: 11px;
+		overflow-x: auto;
+		max-height: 200px;
+		margin-top: 5px;
+		white-space: pre-wrap;
+		word-break: break-all;
+	}
+
+	.log-status-badge {
+		display: inline-block;
+		padding: 2px 8px;
+		border-radius: 3px;
+		font-size: 11px;
+		font-weight: 500;
+	}
+	.log-status-badge.log-status-success {
+		background: #e6f9e6;
+		color: #006600;
+	}
+	.log-status-badge.log-status-error {
+		background: #fcf0f1;
+		color: #d63638;
+	}
+	.log-status-badge.log-status-warning {
+		background: #fcf9e8;
+		color: #9d5e02;
+	}
+	.log-status-badge.log-status-info {
+		background: #f0f0f1;
+		color: #646970;
+	}
+
+	.alignright {
+		float: right;
+	}
+</style>
+
+<script>
+	function applyFilters() {
+var type = document.getElementById('type-filter').value;
+var status = document.getElementById('status-filter').value;
+var url = '?page=aio-events-logs';
+if (type) 
+url += '&type=' + type;
+
+
+if (status) 
+url += '&status=' + status;
+
+
+window.location.href = url;
+}
+
+document.getElementById('clear-logs-btn').addEventListener('click', function () {
+if (!confirm('{{ function('__', 'Are you sure you want to clear all logs?', 'aio-event-solution') }}')) {
+return;
+}
+
+var btn = this;
+btn.disabled = true;
+btn.textContent = '{{ function('__', 'Clearing...', 'aio-event-solution') }}';
+
+fetch(ajaxurl, {
+method: 'POST',
+headers: {
+'Content-Type': 'application/x-www-form-urlencoded'
+},
+body: 'action=aio_events_clear_logs&nonce=  {{ nonce }}'
+}).then(response => response.json()).then(data => {
+if (data.success) {
+window.location.reload();
+} else {
+alert(data.data.message || 'Error clearing logs');
+btn.disabled = false;
+btn.textContent = '{{ function('__', 'Clear All Logs', 'aio-event-solution') }}';
+}
+}).catch(error => {
+alert('Error: ' + error);
+btn.disabled = false;
+btn.textContent = '{{ function('__', 'Clear All Logs', 'aio-event-solution') }}';
+});
+});
+</script>

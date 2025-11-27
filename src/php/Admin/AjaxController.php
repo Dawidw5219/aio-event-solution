@@ -2,9 +2,9 @@
 
 namespace AIOEvents\Admin;
 
-use AIOEvents\Repositories\RegistrationRepository;
-use AIOEvents\Scheduler\EmailScheduler;
-use AIOEvents\Integrations\BrevoAPI;
+use AIOEvents\Database\RegistrationRepository;
+use AIOEvents\Email\Scheduler;
+use AIOEvents\Email\BrevoClient;
 
 /**
  * Handles all AJAX requests for admin and frontend
@@ -22,8 +22,10 @@ class AjaxController
     add_action('wp_ajax_aio_cancel_scheduled_emails', [self::class, 'cancel_scheduled_emails']);
     add_action('wp_ajax_aio_force_run_cron', [self::class, 'force_run_cron']);
     add_action('wp_ajax_aio_check_github_updates', [self::class, 'check_github_updates']);
-    add_action('wp_ajax_aio_cancel_event_emails', [self::class, 'cancel_event_emails']);
+    add_action('wp_ajax_aio_cancel_event', [self::class, 'cancel_event']);
     add_action('wp_ajax_aio_export_registrations_csv', [self::class, 'export_registrations_csv']);
+    add_action('wp_ajax_aio_events_clear_scheduled_emails', [self::class, 'clear_scheduled_emails']);
+    add_action('wp_ajax_aio_events_test_debug_email', [self::class, 'test_debug_email']);
 
     // Frontend handlers
     add_action('wp_ajax_aio_register_event', [self::class, 'register_event']);
@@ -38,16 +40,35 @@ class AjaxController
     check_ajax_referer('aio-events-admin', 'nonce');
     self::require_admin();
 
-    require_once AIO_EVENTS_PATH . 'php/Scheduler/EmailScheduler.php';
-    $scheduler = new EmailScheduler();
-    $processed = $scheduler->process_scheduled_emails();
+    require_once AIO_EVENTS_PATH . 'php/Email/Scheduler.php';
+    $result = Scheduler::run_daily_schedule();
+
+    if ($result === false) {
+      wp_send_json_error([
+        'message' => __('Brevo API not configured', 'aio-event-solution'),
+      ]);
+    }
+
+    $scheduled = is_array($result) ? ($result['scheduled'] ?? 0) : 0;
+    $errors = is_array($result) ? ($result['errors'] ?? 0) : 0;
+
+    if ($scheduled === 0 && $errors === 0) {
+      $message = __('Cron executed. No emails to schedule at this time.', 'aio-event-solution');
+    } else {
+      $message = sprintf(
+        __('Cron executed. Scheduled/sent %d email(s).', 'aio-event-solution'),
+        $scheduled
+      );
+
+      if ($errors > 0) {
+        $message .= ' ' . sprintf(__('%d error(s).', 'aio-event-solution'), $errors);
+      }
+    }
 
     wp_send_json_success([
-      'message' => sprintf(
-        __('Cron executed. Processed %d email(s).', 'aio-event-solution'),
-        $processed
-      ),
-      'processed' => $processed,
+      'message' => $message,
+      'scheduled' => $scheduled,
+      'errors' => $errors,
     ]);
   }
 
@@ -131,8 +152,8 @@ class AjaxController
       wp_send_json_error(['message' => __('All fields are required', 'aio-event-solution')]);
     }
 
-    require_once AIO_EVENTS_PATH . 'php/Services/RegistrationService.php';
-    $result = \AIOEvents\Services\RegistrationService::register($event_id, $email, $name, $phone, []);
+    require_once AIO_EVENTS_PATH . 'php/Event/Registration.php';
+    $result = \AIOEvents\Event\Registration::register($event_id, $email, $name, $phone, []);
 
     if (is_wp_error($result)) {
       wp_send_json_error(['message' => $result->get_error_message()]);
@@ -158,8 +179,8 @@ class AjaxController
       wp_send_json_error(['message' => __('API key is required', 'aio-event-solution')]);
     }
 
-    require_once AIO_EVENTS_PATH . 'php/Integrations/BrevoAPI.php';
-    $brevo = new BrevoAPI($api_key);
+    require_once AIO_EVENTS_PATH . 'php/Email/BrevoClient.php';
+    $brevo = new BrevoClient($api_key);
     $result = $brevo->test_connection();
 
     if (is_wp_error($result)) {
@@ -187,8 +208,8 @@ class AjaxController
       wp_send_json_error(['message' => __('API key is required', 'aio-event-solution')]);
     }
 
-    require_once AIO_EVENTS_PATH . 'php/Integrations/BrevoAPI.php';
-    $brevo = new BrevoAPI($api_key);
+    require_once AIO_EVENTS_PATH . 'php/Email/BrevoClient.php';
+    $brevo = new BrevoClient($api_key);
     $result = $brevo->test_connection();
 
     if (is_wp_error($result)) {
@@ -215,8 +236,8 @@ class AjaxController
     check_ajax_referer('aio_cancel_emails', 'nonce');
     self::require_admin();
 
-    require_once AIO_EVENTS_PATH . 'php/Scheduler/EmailScheduler.php';
-    require_once AIO_EVENTS_PATH . 'php/Integrations/BrevoAPI.php';
+    require_once AIO_EVENTS_PATH . 'php/Email/Scheduler.php';
+    require_once AIO_EVENTS_PATH . 'php/Email/BrevoClient.php';
 
     $settings = get_option('aio_events_settings', []);
     $api_key = $settings['brevo_api_key'] ?? '';
@@ -226,7 +247,7 @@ class AjaxController
     }
 
     $replacement_template_id = absint($_POST['replacement_template_id'] ?? 0);
-    $scheduled_emails = EmailScheduler::get_scheduled_emails(['limit' => 1000]);
+    $scheduled_emails = Scheduler::get_scheduled_emails(['limit' => 1000]);
 
     if (empty($scheduled_emails)) {
       wp_send_json_success(['message' => __('No scheduled emails to cancel', 'aio-event-solution')]);
@@ -242,11 +263,11 @@ class AjaxController
   }
 
   /**
-   * Cancel scheduled emails for specific event
+   * Cancel event permanently - sends cancellation emails and marks event as cancelled
    */
-  public static function cancel_event_emails()
+  public static function cancel_event()
   {
-    check_ajax_referer('aio_cancel_event_emails', 'nonce');
+    check_ajax_referer('aio_cancel_event', 'nonce');
     self::require_admin();
 
     $event_id = absint($_POST['event_id'] ?? 0);
@@ -254,45 +275,106 @@ class AjaxController
       wp_send_json_error(['message' => __('Event ID is required', 'aio-event-solution')]);
     }
 
-    require_once AIO_EVENTS_PATH . 'php/Scheduler/EmailScheduler.php';
-    require_once AIO_EVENTS_PATH . 'php/Integrations/BrevoAPI.php';
-
-    $settings = get_option('aio_events_settings', []);
-    $api_key = $settings['brevo_api_key'] ?? '';
-
-    if (empty($api_key)) {
-      wp_send_json_error(['message' => __('Brevo API key not configured', 'aio-event-solution')]);
+    $event = get_post($event_id);
+    if (!$event || $event->post_type !== 'aio_event') {
+      wp_send_json_error(['message' => __('Invalid event', 'aio-event-solution')]);
     }
 
-    $replacement_template_id = absint($_POST['replacement_template_id'] ?? 0);
-    $event_emails = EmailScheduler::get_scheduled_emails([
-      'event_id' => $event_id,
-      'limit' => 1000,
-    ]);
-
-    if (empty($event_emails)) {
-      wp_send_json_success(['message' => __('No scheduled emails for this event', 'aio-event-solution')]);
+    // Check if already cancelled
+    if (get_post_meta($event_id, '_aio_event_cancelled', true) === '1') {
+      wp_send_json_error(['message' => __('This event is already cancelled', 'aio-event-solution')]);
     }
 
-    $result = self::process_email_cancellation(
-      $event_emails,
-      $api_key,
-      $replacement_template_id,
-      $event_id
+    // Mark event as cancelled (permanent)
+    update_post_meta($event_id, '_aio_event_cancelled', '1');
+    update_post_meta($event_id, '_aio_event_cancelled_at', current_time('mysql'));
+    update_post_meta($event_id, '_aio_event_emails_cancelled', '1'); // Also disable automatic emails
+
+    require_once AIO_EVENTS_PATH . 'php/Logging/ActivityLogger.php';
+    \AIOEvents\Logging\ActivityLogger::log(
+      'event',
+      'event_cancelled',
+      sprintf('Event cancelled: %s', $event->post_title),
+      [],
+      $event_id,
+      null,
+      'warning'
     );
 
-    // Toggle cancellation state
-    $emails_cancelled = get_post_meta($event_id, '_aio_event_emails_cancelled', true) === '1';
+    $message = __('Event has been cancelled.', 'aio-event-solution');
+    $sent_count = 0;
 
-    if ($emails_cancelled) {
-      delete_post_meta($event_id, '_aio_event_emails_cancelled');
-      $message = __('Email scheduling restored for this event.', 'aio-event-solution');
-    } else {
-      update_post_meta($event_id, '_aio_event_emails_cancelled', '1');
-      $message = $result['message'];
+    // Send cancellation email if template selected
+    $template_id = absint($_POST['template_id'] ?? 0);
+    if ($template_id) {
+      require_once AIO_EVENTS_PATH . 'php/Database/RegistrationRepository.php';
+      require_once AIO_EVENTS_PATH . 'php/Email/BrevoClient.php';
+      
+      $registrations = RegistrationRepository::get_by_event_id($event_id);
+      
+      if (!empty($registrations)) {
+        $brevo = new BrevoClient();
+        if ($brevo->is_configured()) {
+          $sent_count = self::send_cancellation_emails($brevo, $template_id, $registrations, $event);
+          $message .= ' ' . sprintf(__('Sent %d cancellation email(s).', 'aio-event-solution'), $sent_count);
+        }
+      } else {
+        $message .= ' ' . __('No registrations to notify.', 'aio-event-solution');
+      }
     }
 
-    wp_send_json_success(['message' => $message]);
+    wp_send_json_success([
+      'message' => $message,
+      'sent' => $sent_count,
+    ]);
+  }
+
+  /**
+   * Send cancellation emails to all registrations
+   */
+  private static function send_cancellation_emails($brevo, $template_id, $registrations, $event)
+  {
+    require_once AIO_EVENTS_PATH . 'php/Logging/ActivityLogger.php';
+    
+    $event_date = get_post_meta($event->ID, '_aio_event_start_date', true);
+    $event_time = get_post_meta($event->ID, '_aio_event_start_time', true);
+    $timezone_string = wp_timezone_string();
+    
+    $sent_count = 0;
+    
+    foreach ($registrations as $registration) {
+      $params = [
+        'event_title' => $event->post_title,
+        'event_date' => date_i18n(get_option('date_format'), strtotime($event_date)),
+        'event_time' => $event_time ? $event_time . ' (' . $timezone_string . ')' : '',
+        'attendee_name' => $registration['name'],
+        'recipient_name' => $registration['name'], // alias
+        'event_join_url' => get_permalink($event->ID),
+      ];
+      
+      $result = $brevo->schedule_email(
+        $template_id,
+        [['email' => $registration['email'], 'name' => $registration['name']]],
+        $params,
+        null,
+        ['tags' => ['event-cancellation', 'event-' . $event->ID]]
+      );
+      
+      if (!is_wp_error($result)) {
+        $sent_count++;
+        \AIOEvents\Logging\ActivityLogger::log(
+          'email_sent',
+          'cancellation_notification',
+          sprintf('Cancellation notification sent to %s', $registration['email']),
+          ['template_id' => $template_id],
+          $event->ID,
+          $registration['email'],
+          'success'
+        );
+      }
+    }
+    
+    return $sent_count;
   }
 
   /**
@@ -308,7 +390,7 @@ class AjaxController
       wp_die(__('Invalid event ID', 'aio-event-solution'));
     }
 
-    require_once AIO_EVENTS_PATH . 'php/Repositories/RegistrationRepository.php';
+    require_once AIO_EVENTS_PATH . 'php/Database/RegistrationRepository.php';
 
     if (!RegistrationRepository::table_exists()) {
       wp_die(__('Registrations table does not exist', 'aio-event-solution'));
@@ -340,24 +422,25 @@ class AjaxController
 
     $output = fopen('php://output', 'w');
 
+    // Use comma as delimiter (standard CSV)
     fputcsv($output, [
       __('Name', 'aio-event-solution'),
       __('Email', 'aio-event-solution'),
       __('Registration Date', 'aio-event-solution'),
       __('Attendance', 'aio-event-solution'),
-    ], ';');
+    ]);
 
     foreach ($registrations as $registration) {
       fputcsv($output, [
         $registration['name'] ?? '',
         $registration['email'] ?? '',
         $registration['registered_at'] 
-          ? date_i18n(get_option('date_format') . ' ' . get_option('time_format'), strtotime($registration['registered_at'])) 
+          ? date_i18n('Y-m-d H:i', strtotime($registration['registered_at'])) 
           : '',
         !empty($registration['clicked_join_link']) 
           ? __('Yes', 'aio-event-solution') 
           : __('No', 'aio-event-solution'),
-      ], ';');
+      ]);
     }
 
     fclose($output);
@@ -365,104 +448,84 @@ class AjaxController
   }
 
   /**
-   * Process email cancellation
+   * Clear all scheduled emails (legacy table)
    */
-  private static function process_email_cancellation($emails, $api_key, $replacement_template_id, $event_id = null)
+  public static function clear_scheduled_emails()
   {
+    check_ajax_referer('aio-events-admin', 'nonce');
+    self::require_admin();
+
     global $wpdb;
     $table_name = $wpdb->prefix . 'aio_event_scheduled_emails';
     
-    $brevo = new BrevoAPI();
-    $cancelled_count = 0;
-    $replacement_sent_count = 0;
-    $all_recipients = [];
-    $events_processed = [];
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    $count = $wpdb->get_var("SELECT COUNT(*) FROM {$table_name}");
+    
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    $wpdb->query("TRUNCATE TABLE {$table_name}");
 
-    foreach ($emails as $email) {
-      // Cancel in Brevo
-      if ($email['status'] === 'scheduled' && !empty($email['brevo_message_id'])) {
-        wp_remote_request(
-          'https://api.brevo.com/v3/smtp/email/' . urlencode($email['brevo_message_id']),
-          [
-            'method' => 'DELETE',
-            'headers' => [
-              'api-key' => $api_key,
-              'Content-Type' => 'application/json',
-            ],
-            'timeout' => 15,
-          ]
-        );
-      }
-
-      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-      $wpdb->update(
-        $table_name,
-        ['status' => 'cancelled'],
-        ['id' => $email['id']],
-        ['%s'],
-        ['%d']
-      );
-      $cancelled_count++;
-
-      // Collect recipients for replacement email
-      if (!empty($replacement_template_id)) {
-        $should_collect = ($event_id !== null) || !in_array($email['event_id'], $events_processed);
-        
-        if ($should_collect) {
-          $events_processed[] = $email['event_id'];
-          $brevo_list_ids = json_decode($email['recipient_list_ids'], true);
-          
-          if (!empty($brevo_list_ids) && is_array($brevo_list_ids)) {
-            $recipients = EmailScheduler::get_recipients_from_lists($brevo_list_ids);
-            foreach ($recipients as $recipient) {
-              if (!isset($all_recipients[$recipient['email']])) {
-                $all_recipients[$recipient['email']] = $recipient;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Send replacement emails
-    if (!empty($replacement_template_id) && !empty($all_recipients)) {
-      $replacement_sent_count = self::send_replacement_emails(
-        $brevo,
-        $replacement_template_id,
-        array_values($all_recipients),
-        $event_id
-      );
-    }
-
-    $message = sprintf(__('Cancelled %d scheduled emails.', 'aio-event-solution'), $cancelled_count);
-    if ($replacement_sent_count > 0) {
-      $message .= ' ' . sprintf(__('Sent %d replacement emails.', 'aio-event-solution'), $replacement_sent_count);
-    }
-
-    return ['cancelled' => $cancelled_count, 'replacements' => $replacement_sent_count, 'message' => $message];
+    wp_send_json_success([
+      'message' => sprintf(__('Cleared %d scheduled emails.', 'aio-event-solution'), $count),
+    ]);
   }
 
   /**
-   * Send replacement emails
+   * Send test debug email
    */
-  private static function send_replacement_emails($brevo, $template_id, $recipients, $event_id = null)
+  public static function test_debug_email()
   {
-    $event = $event_id ? get_post($event_id) : null;
-    
-    $event_params = [
-      'event_title' => $event ? $event->post_title : __('Cancellation message', 'aio-event-solution'),
-      'event_date' => date_i18n(get_option('date_format')),
-      'event_join_url' => $event ? get_permalink($event->ID) : home_url(),
-      'event_location' => '',
+    check_ajax_referer('aio-events-admin', 'nonce');
+    self::require_admin();
+
+    $settings = get_option('aio_events_settings', []);
+    $debug_email = $settings['debug_email'] ?? '';
+
+    if (empty($debug_email) || !is_email($debug_email)) {
+      wp_send_json_error([
+        'message' => __('Debug email address is not configured. Please set it first.', 'aio-event-solution'),
+      ]);
+    }
+
+    $subject = sprintf(
+      '[%s] AIO Events - Test Email',
+      get_bloginfo('name')
+    );
+
+    $body = sprintf(
+      '<h2>%s</h2>
+      <p>%s</p>
+      <p><strong>%s:</strong> %s</p>
+      <p><strong>%s:</strong> %s</p>
+      <p><strong>%s:</strong> %s</p>
+      <hr>
+      <p style="color: #666; font-size: 12px;">%s</p>',
+      __('Test Email from AIO Events', 'aio-event-solution'),
+      __('This is a test email to verify that your debug email configuration is working correctly.', 'aio-event-solution'),
+      __('Site', 'aio-event-solution'),
+      home_url(),
+      __('Admin Email', 'aio-event-solution'),
+      get_option('admin_email'),
+      __('WordPress Version', 'aio-event-solution'),
+      get_bloginfo('version'),
+      __('This email was sent from AIO Events plugin settings.', 'aio-event-solution')
+    );
+
+    $headers = [
+      'Content-Type: text/html; charset=UTF-8',
+      'From: ' . get_bloginfo('name') . ' <' . get_option('admin_email') . '>',
     ];
 
-    $tags = $event_id 
-      ? ['event-replacement', 'event-' . $event_id]
-      : ['event-replacement', 'cancelled-emails'];
+    $sent = wp_mail($debug_email, $subject, $body, $headers);
 
-    $result = $brevo->schedule_email($template_id, $recipients, $event_params, null, ['tags' => $tags]);
-
-    return !is_wp_error($result) ? count($recipients) : 0;
+    if ($sent) {
+      wp_send_json_success([
+        'message' => sprintf(__('Test email sent to %s', 'aio-event-solution'), $debug_email),
+      ]);
+    } else {
+      wp_send_json_error([
+        'message' => __('Failed to send test email. Check your WordPress mail configuration.', 'aio-event-solution'),
+      ]);
+    }
   }
 
   /**
@@ -475,4 +538,3 @@ class AjaxController
     }
   }
 }
-

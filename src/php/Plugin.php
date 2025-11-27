@@ -4,10 +4,10 @@ namespace AIOEvents;
 
 use AIOEvents\Admin\SettingsPage;
 use AIOEvents\Admin\AjaxController;
-use AIOEvents\Assets\AssetManager;
+use AIOEvents\Core\Assets;
 use AIOEvents\Database\Migrator;
-use AIOEvents\PostTypes\EventPostType;
-use AIOEvents\Scheduler\CronManager;
+use AIOEvents\Event\PostType;
+use AIOEvents\Core\Cron;
 
 /**
  * Main Plugin Class - Singleton Bootstrap
@@ -60,8 +60,8 @@ class Plugin
    */
   private function init_assets()
   {
-    require_once AIO_EVENTS_PATH . 'php/Assets/AssetManager.php';
-    AssetManager::register();
+    require_once AIO_EVENTS_PATH . 'php/Core/Assets.php';
+    Assets::register();
   }
 
   /**
@@ -69,8 +69,8 @@ class Plugin
    */
   private function init_github_updater()
   {
-    require_once AIO_EVENTS_PATH . 'php/Updater/GitHubUpdater.php';
-    new \AIOEvents\Updater\GitHubUpdater(AIO_EVENTS_PATH . 'aio-event-solution.php');
+    require_once AIO_EVENTS_PATH . 'php/Core/Updater.php';
+    new \AIOEvents\Core\Updater(AIO_EVENTS_PATH . 'aio-event-solution.php');
   }
 
   /**
@@ -90,8 +90,8 @@ class Plugin
    */
   private function init_cron()
   {
-    require_once AIO_EVENTS_PATH . 'php/Scheduler/CronManager.php';
-    CronManager::init();
+    require_once AIO_EVENTS_PATH . 'php/Core/Cron.php';
+    Cron::init();
   }
 
   /**
@@ -113,9 +113,9 @@ class Plugin
     $existingFunctions = $twig->getFunctions();
     if (!isset($existingFunctions['aio_render_email_template_selector'])) {
       $twig->addFunction(new \Twig\TwigFunction('aio_render_email_template_selector', function ($args) {
-        require_once AIO_EVENTS_PATH . 'php/Helpers/EmailTemplateSelector.php';
+        require_once AIO_EVENTS_PATH . 'php/Admin/EmailTemplateSelector.php';
         ob_start();
-        \AIOEvents\Helpers\EmailTemplateSelector::render($args);
+        \AIOEvents\Admin\EmailTemplateSelector::render($args);
         return ob_get_clean();
       }, ['is_safe' => ['html']]));
     }
@@ -128,8 +128,8 @@ class Plugin
    */
   public function init_registration()
   {
-    require_once AIO_EVENTS_PATH . 'php/Taxonomies/EventCategoryMeta.php';
-    \AIOEvents\Taxonomies\EventCategoryMeta::init();
+    require_once AIO_EVENTS_PATH . 'php/Event/Taxonomy.php';
+    \AIOEvents\Event\Taxonomy::init();
 
     require_once AIO_EVENTS_PATH . 'php/Database/Migrator.php';
     Migrator::run();
@@ -143,7 +143,8 @@ class Plugin
    */
   public function register_post_types()
   {
-    EventPostType::register();
+    require_once AIO_EVENTS_PATH . 'php/Event/PostType.php';
+    PostType::register();
   }
 
   /**
@@ -151,12 +152,13 @@ class Plugin
    */
   public function register_admin_pages()
   {
-    require_once AIO_EVENTS_PATH . 'php/Admin/ScheduledEmailsPage.php';
-    \AIOEvents\Admin\ScheduledEmailsPage::register();
-
     require_once AIO_EVENTS_PATH . 'php/Admin/CronStatusPage.php';
     \AIOEvents\Admin\CronStatusPage::register();
 
+    require_once AIO_EVENTS_PATH . 'php/Admin/LogsPage.php';
+    \AIOEvents\Admin\LogsPage::register();
+
+    require_once AIO_EVENTS_PATH . 'php/Admin/SettingsPage.php';
     SettingsPage::register();
   }
 
@@ -165,8 +167,8 @@ class Plugin
    */
   public function register_shortcodes()
   {
-    require_once AIO_EVENTS_PATH . 'php/Shortcodes/EventsShortcode.php';
-    \AIOEvents\Shortcodes\EventsShortcode::register();
+    require_once AIO_EVENTS_PATH . 'php/Event/Shortcode.php';
+    \AIOEvents\Event\Shortcode::register();
   }
 
   /**
@@ -175,32 +177,30 @@ class Plugin
   public function load_event_templates($template)
   {
     if (is_singular('aio_event')) {
-      $plugin_template = AIO_EVENTS_PATH . 'php/Frontend/single-aio_event.php';
-      if (file_exists($plugin_template)) {
-        return $plugin_template;
-      }
+      require_once AIO_EVENTS_PATH . 'php/Frontend/SingleTemplate.php';
+      \AIOEvents\Frontend\SingleTemplate::render();
+      return ''; // Prevent default template loading
     }
 
     if (is_tax('aio_event_category')) {
-      $plugin_template = AIO_EVENTS_PATH . 'php/Frontend/archive-aio_event.php';
-      if (file_exists($plugin_template)) {
-        return $plugin_template;
-      }
+      require_once AIO_EVENTS_PATH . 'php/Frontend/ArchiveTemplate.php';
+      \AIOEvents\Frontend\ArchiveTemplate::render();
+      return ''; // Prevent default template loading
     }
 
     return $template;
   }
 
   /**
-   * Save registration data (delegation to RegistrationService)
+   * Save registration data (delegation to Registration)
    * Kept for backward compatibility with existing code
    * 
-   * @deprecated Use RegistrationService::register() directly
+   * @deprecated Use Event\Registration::register() directly
    */
   public function save_registration_data($event_id, $email, $name, $phone = '', $from_brevo = false, $extra_attributes = [])
   {
-    require_once AIO_EVENTS_PATH . 'php/Services/RegistrationService.php';
-    return \AIOEvents\Services\RegistrationService::register($event_id, $email, $name, $phone, $extra_attributes);
+    require_once AIO_EVENTS_PATH . 'php/Event/Registration.php';
+    return \AIOEvents\Event\Registration::register($event_id, $email, $name, $phone, $extra_attributes);
   }
 }
 

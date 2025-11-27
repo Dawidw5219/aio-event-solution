@@ -5,7 +5,7 @@
  * Text Domain: aio-event-solution
  * Domain Path: /languages
  * Description: Complete event management solution for WordPress with Brevo integration
- * Version: 1.0.9
+ * Version: 1.1.0
  * Author: App4You.dev
  * Author URI: https://app4you.dev
  * License: GPLv3 or later
@@ -30,7 +30,7 @@ require_once AIO_EVENTS_PATH . 'vendor/autoload.php';
 // Load plugin classes
 require_once AIO_EVENTS_PATH . 'php/Plugin.php';
 require_once AIO_EVENTS_PATH . 'php/Admin/SettingsPage.php';
-require_once AIO_EVENTS_PATH . 'php/PostTypes/EventPostType.php';
+require_once AIO_EVENTS_PATH . 'php/Event/PostType.php';
 
 use AIOEvents\Plugin;
 
@@ -69,18 +69,18 @@ function aio_events_init()
 	];
 
 	// Add Twig functions
-	require_once AIO_EVENTS_PATH . 'php/Helpers/EventJoinLinkHelper.php';
-	require_once AIO_EVENTS_PATH . 'php/Helpers/EmailTemplateSelector.php';
+	require_once AIO_EVENTS_PATH . 'php/Event/JoinLink.php';
+	require_once AIO_EVENTS_PATH . 'php/Admin/EmailTemplateSelector.php';
 	add_filter('timber/twig', function ($twig) {
 		$twig->addFunction(new \Twig\TwigFunction('aio_get_join_link', function ($event_id, $email = null) {
-			return \AIOEvents\Helpers\EventJoinLinkHelper::get_join_link($event_id, $email);
+			return \AIOEvents\Event\JoinLink::get_join_link($event_id, $email);
 		}));
 		$twig->addFunction(new \Twig\TwigFunction('aio_is_registered', function ($event_id, $email = null) {
-			return \AIOEvents\Helpers\EventJoinLinkHelper::is_registered($event_id, $email);
+			return \AIOEvents\Event\JoinLink::is_registered($event_id, $email);
 		}));
 		$twig->addFunction(new \Twig\TwigFunction('aio_render_email_template_selector', function ($args) {
 			ob_start();
-			\AIOEvents\Helpers\EmailTemplateSelector::render($args);
+			\AIOEvents\Admin\EmailTemplateSelector::render($args);
 			return ob_get_clean();
 		}, ['is_safe' => ['html']]));
 		return $twig;
@@ -100,8 +100,8 @@ add_action('plugins_loaded', 'aio_events_init');
 function aio_events_activate()
 {
 	// Register post types first
-	require_once AIO_EVENTS_PATH . 'php/PostTypes/EventPostType.php';
-	\AIOEvents\PostTypes\EventPostType::register();
+	require_once AIO_EVENTS_PATH . 'php/Event/PostType.php';
+	\AIOEvents\Event\PostType::register();
 
 	// Create registrations table
 	aio_events_create_tables();
@@ -139,13 +139,17 @@ function aio_events_create_tables()
 	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 	dbDelta($sql);
 
-	// Create scheduled emails table
-	require_once AIO_EVENTS_PATH . 'php/Scheduler/EmailScheduler.php';
-	\AIOEvents\Scheduler\EmailScheduler::create_table();
+  // Create scheduled emails table
+  require_once AIO_EVENTS_PATH . 'php/Email/Scheduler.php';
+  \AIOEvents\Email\Scheduler::create_table();
 
-	// Create cron logs table
-	require_once AIO_EVENTS_PATH . 'php/Scheduler/CronLogger.php';
-	\AIOEvents\Scheduler\CronLogger::create_table();
+  // Create cron logs table
+  require_once AIO_EVENTS_PATH . 'php/Logging/CronLogger.php';
+  \AIOEvents\Logging\CronLogger::create_table();
+
+  // Create activity logs table
+  require_once AIO_EVENTS_PATH . 'php/Logging/ActivityLogger.php';
+  \AIOEvents\Logging\ActivityLogger::create_table();
 }
 
 /**

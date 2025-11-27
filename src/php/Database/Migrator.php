@@ -13,6 +13,7 @@ class Migrator
   public static function run()
   {
     self::migrate_registrations_table();
+    self::migrate_scheduled_emails_table();
   }
 
   /**
@@ -30,6 +31,29 @@ class Migrator
     self::add_column_if_missing($table_name, 'join_token', 'varchar(255) DEFAULT NULL');
     self::add_index_if_missing($table_name, 'join_token');
     self::add_column_if_missing($table_name, 'clicked_join_link', 'tinyint(1) DEFAULT 0 NOT NULL');
+    
+    // Email tracking columns - per registration tracking
+    self::add_column_if_missing($table_name, 'registration_email_sent_at', 'datetime DEFAULT NULL');
+    self::add_column_if_missing($table_name, 'reminder_email_sent_at', 'datetime DEFAULT NULL');
+    self::add_column_if_missing($table_name, 'join_email_sent_at', 'datetime DEFAULT NULL');
+    self::add_column_if_missing($table_name, 'followup_email_sent_at', 'datetime DEFAULT NULL');
+  }
+
+  /**
+   * Migrate scheduled_emails table - add missing columns
+   */
+  private static function migrate_scheduled_emails_table()
+  {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'aio_event_scheduled_emails';
+
+    if (!self::table_exists($table_name)) {
+      return;
+    }
+
+    self::add_column_if_missing($table_name, 'email_type', "varchar(20) DEFAULT 'before' NOT NULL");
+    self::add_index_if_missing($table_name, 'email_type');
+    self::add_column_if_missing($table_name, 'recipient_count', "int(11) DEFAULT 0 NOT NULL");
   }
 
   /**

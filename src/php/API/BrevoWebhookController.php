@@ -109,8 +109,8 @@ class BrevoWebhookController
     }
 
     // Check if already registered BEFORE sending to Brevo
-    require_once AIO_EVENTS_PATH . 'php/Repositories/RegistrationRepository.php';
-    $is_already_registered = \AIOEvents\Repositories\RegistrationRepository::is_registered($event_id, $email);
+    require_once AIO_EVENTS_PATH . 'php/Database/RegistrationRepository.php';
+    $is_already_registered = \AIOEvents\Database\RegistrationRepository::is_registered($event_id, $email);
 
     // If already registered, skip Brevo submission and database save
     // Only resend email
@@ -138,8 +138,9 @@ class BrevoWebhookController
         $name = $email;
       }
       
-      require_once AIO_EVENTS_PATH . 'php/Scheduler/EmailScheduler.php';
-      \AIOEvents\Scheduler\EmailScheduler::send_registration_email($event_id, $email, $name);
+      // Resend confirmation email via Registration service
+      require_once AIO_EVENTS_PATH . 'php/Event/Registration.php';
+      \AIOEvents\Event\Registration::register($event_id, $email, $name); // Will handle as existing
       
       // If form-data submission (direct form submit), return HTML redirect instead of JSON
       if (!$is_json) {
@@ -227,8 +228,8 @@ class BrevoWebhookController
     ];
 
     // Save registration to database and add to Brevo list via API
-    require_once AIO_EVENTS_PATH . 'php/Services/RegistrationService.php';
-    $result = \AIOEvents\Services\RegistrationService::register($event_id, $email, $name, '', $brevo_attributes);
+    require_once AIO_EVENTS_PATH . 'php/Event/Registration.php';
+    $result = \AIOEvents\Event\Registration::register($event_id, $email, $name, '', $brevo_attributes);
 
     if (is_wp_error($result)) {
       return new \WP_REST_Response([
@@ -250,7 +251,7 @@ class BrevoWebhookController
     }
 
     // Get debug info from RegistrationService
-    $debug['brevo_sync'] = \AIOEvents\Services\RegistrationService::$debug_info;
+    $debug['brevo_sync'] = \AIOEvents\Event\Registration::$debug_info;
 
     return new \WP_REST_Response([
       'success' => true,

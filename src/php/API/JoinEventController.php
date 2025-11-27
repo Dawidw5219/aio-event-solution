@@ -50,14 +50,14 @@ class JoinEventController
     $event_id = $decoded['event_id'];
     $email = $decoded['email'];
 
-    require_once AIO_EVENTS_PATH . 'php/Repositories/RegistrationRepository.php';
+    require_once AIO_EVENTS_PATH . 'php/Database/RegistrationRepository.php';
     
-    if (!\AIOEvents\Repositories\RegistrationRepository::table_exists()) {
+    if (!\AIOEvents\Database\RegistrationRepository::table_exists()) {
       wp_die(__('Registrations table does not exist', 'aio-event-solution'), __('Error', 'aio-event-solution'), ['response' => 500]);
       return;
     }
 
-    $registration = \AIOEvents\Repositories\RegistrationRepository::get_by_token($token);
+    $registration = \AIOEvents\Database\RegistrationRepository::get_by_token($token);
 
     if (empty($registration)) {
       wp_die(__('Registration not found', 'aio-event-solution'), __('Error', 'aio-event-solution'), ['response' => 404]);
@@ -76,7 +76,7 @@ class JoinEventController
     }
 
     // Mark that user clicked join link
-    \AIOEvents\Repositories\RegistrationRepository::update($registration['id'], [
+    \AIOEvents\Database\RegistrationRepository::update($registration['id'], [
       'clicked_join_link' => true,
     ]);
 
@@ -131,13 +131,13 @@ class JoinEventController
     $email = $decoded['email'];
 
     // Verify token matches registration in database
-    require_once AIO_EVENTS_PATH . 'php/Repositories/RegistrationRepository.php';
+    require_once AIO_EVENTS_PATH . 'php/Database/RegistrationRepository.php';
     
-    if (!\AIOEvents\Repositories\RegistrationRepository::table_exists()) {
+    if (!\AIOEvents\Database\RegistrationRepository::table_exists()) {
       return new \WP_Error('no_table', __('Registrations table does not exist', 'aio-event-solution'), ['status' => 500]);
     }
 
-    $registration = \AIOEvents\Repositories\RegistrationRepository::get_by_token($token);
+    $registration = \AIOEvents\Database\RegistrationRepository::get_by_token($token);
 
     if (empty($registration)) {
       return new \WP_Error('registration_not_found', __('Registration not found', 'aio-event-solution'), ['status' => 404]);
@@ -155,7 +155,7 @@ class JoinEventController
     }
 
     // Mark that user clicked join link
-    \AIOEvents\Repositories\RegistrationRepository::update($registration['id'], [
+    \AIOEvents\Database\RegistrationRepository::update($registration['id'], [
       'clicked_join_link' => true,
     ]);
 
