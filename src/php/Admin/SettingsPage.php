@@ -396,6 +396,30 @@ class SettingsPage
       ]
     );
 
+    // Enable Activity Logging
+    add_settings_field(
+      'enable_activity_logging',
+      __('Enable Activity Logging', 'aio-event-solution'),
+      [self::class, 'render_checkbox_field'],
+      'aio-events-settings',
+      'aio_events_debug_section',
+      [
+        'id' => 'enable_activity_logging',
+        'label_for' => 'enable_activity_logging',
+        'description' => __('Log all plugin activities (API calls, emails, registrations)', 'aio-event-solution'),
+        'default' => true,
+      ]
+    );
+
+    // Clear Data Buttons
+    add_settings_field(
+      'clear_data_buttons',
+      __('Clear Data', 'aio-event-solution'),
+      [self::class, 'render_clear_data_buttons'],
+      'aio-events-settings',
+      'aio_events_debug_section'
+    );
+
   }
 
   /**
@@ -500,6 +524,9 @@ class SettingsPage
       }
     }
 
+    // Enable activity logging
+    $sanitized['enable_activity_logging'] = !empty($input['enable_activity_logging']);
+
     // Brevo forms library
     if (isset($input['brevo_forms']) && is_array($input['brevo_forms'])) {
       $forms = [];
@@ -537,7 +564,7 @@ class SettingsPage
 
   public static function render_email_scheduling_section_description()
   {
-    require_once AIO_EVENTS_PATH . 'php/Helpers/BrevoVariablesHelper.php';
+    require_once AIO_EVENTS_PATH . 'php/Email/VariablesHelper.php';
     
     echo '<p>';
     echo esc_html__('Email templates are ready-made email message patterns created in Brevo. Select templates that will be used for automatic email sending to event participants.', 'aio-event-solution');
@@ -556,8 +583,8 @@ class SettingsPage
    */
   public static function render_email_template_variables_info()
   {
-    require_once AIO_EVENTS_PATH . 'php/Helpers/BrevoVariablesHelper.php';
-    echo \AIOEvents\Helpers\BrevoVariablesHelper::render_available_variables();
+    require_once AIO_EVENTS_PATH . 'php/Email/VariablesHelper.php';
+    echo \AIOEvents\Email\VariablesHelper::render_available_variables();
   }
 
   /**
@@ -586,9 +613,9 @@ class SettingsPage
     $settings = get_option('aio_events_settings', []);
     $value = $settings[$args['id']] ?? '';
 
-    require_once AIO_EVENTS_PATH . 'php/Helpers/EmailTemplateSelector.php';
+    require_once AIO_EVENTS_PATH . 'php/Admin/EmailTemplateSelector.php';
     
-    \AIOEvents\Helpers\EmailTemplateSelector::render([
+    \AIOEvents\Admin\EmailTemplateSelector::render([
       'id' => $args['id'],
       'name' => 'aio_events_settings[' . $args['id'] . ']',
       'value' => $value,
@@ -627,8 +654,8 @@ class SettingsPage
   {
     $settings = get_option('aio_events_settings', []);
     $value = $settings[$args['id']] ?? '';
-    require_once AIO_EVENTS_PATH . 'php/Integrations/BrevoAPI.php';
-    $brevo = new \AIOEvents\Integrations\BrevoAPI();
+    require_once AIO_EVENTS_PATH . 'php/Email/BrevoClient.php';
+    $brevo = new \AIOEvents\Email\BrevoClient();
     $lists = $brevo->is_configured() ? $brevo->get_lists() : [];
     $lists_error = is_wp_error($lists);
 
@@ -817,8 +844,108 @@ class SettingsPage
   public static function render_checkbox_field($args)
   {
     $settings = get_option('aio_events_settings', []);
-    $checked = isset($settings[$args['id']]) && $settings[$args['id']];
+    $default = $args['default'] ?? false;
+    $checked = isset($settings[$args['id']]) ? (bool) $settings[$args['id']] : $default;
     echo '<label><input type="checkbox" id="' . esc_attr($args['id']) . '" name="aio_events_settings[' . esc_attr($args['id']) . ']" value="1"' . ($checked ? ' checked' : '') . '> ' . esc_html($args['description']) . '</label>';
+  }
+
+  /**
+   * Render clear data buttons
+   */
+  public static function render_clear_data_buttons()
+  {
+    global $wpdb;
+    
+    // Count scheduled emails
+    $scheduled_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}aio_event_scheduled_emails");
+    $logs_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}aio_activity_logs");
+    
+    $nonce = wp_create_nonce('aio-events-admin');
+    ?>
+    <div class="aio-clear-data-buttons">
+      <p>
+        <button type="button" class="button" id="clear-scheduled-emails-btn" data-nonce="<?php echo esc_attr($nonce); ?>">
+          <?php esc_html_e('Clear Scheduled Emails', 'aio-event-solution'); ?>
+        </button>
+        <span class="description" style="margin-left: 10px;">
+          <?php printf(esc_html__('(%d records)', 'aio-event-solution'), $scheduled_count); ?>
+        </span>
+      </p>
+      <p>
+        <button type="button" class="button" id="clear-activity-logs-btn" data-nonce="<?php echo esc_attr($nonce); ?>">
+          <?php esc_html_e('Clear Activity Logs', 'aio-event-solution'); ?>
+        </button>
+        <span class="description" style="margin-left: 10px;">
+          <?php printf(esc_html__('(%d records)', 'aio-event-solution'), $logs_count); ?>
+        </span>
+      </p>
+      <p>
+        <button type="button" class="button button-secondary" id="test-debug-email-btn" data-nonce="<?php echo esc_attr($nonce); ?>">
+          <?php esc_html_e('Send Test Email', 'aio-event-solution'); ?>
+        </button>
+        <span class="description" style="margin-left: 10px;">
+          <?php esc_html_e('Send a test email to the debug email address', 'aio-event-solution'); ?>
+        </span>
+      </p>
+    </div>
+    <script>
+    (function() {
+      document.getElementById('clear-scheduled-emails-btn').addEventListener('click', function() {
+        if (!confirm('<?php echo esc_js(__('Are you sure you want to clear all scheduled emails?', 'aio-event-solution')); ?>')) return;
+        var btn = this;
+        btn.disabled = true;
+        btn.textContent = '<?php echo esc_js(__('Clearing...', 'aio-event-solution')); ?>';
+        fetch(ajaxurl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'action=aio_events_clear_scheduled_emails&nonce=' + btn.dataset.nonce
+        })
+        .then(r => r.json())
+        .then(data => {
+          alert(data.success ? data.data.message : (data.data.message || 'Error'));
+          location.reload();
+        })
+        .catch(e => { alert('Error: ' + e); btn.disabled = false; });
+      });
+      
+      document.getElementById('clear-activity-logs-btn').addEventListener('click', function() {
+        if (!confirm('<?php echo esc_js(__('Are you sure you want to clear all activity logs?', 'aio-event-solution')); ?>')) return;
+        var btn = this;
+        btn.disabled = true;
+        btn.textContent = '<?php echo esc_js(__('Clearing...', 'aio-event-solution')); ?>';
+        fetch(ajaxurl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'action=aio_events_clear_logs&nonce=' + btn.dataset.nonce
+        })
+        .then(r => r.json())
+        .then(data => {
+          alert(data.success ? data.data.message : (data.data.message || 'Error'));
+          location.reload();
+        })
+        .catch(e => { alert('Error: ' + e); btn.disabled = false; });
+      });
+      
+      document.getElementById('test-debug-email-btn').addEventListener('click', function() {
+        var btn = this;
+        btn.disabled = true;
+        btn.textContent = '<?php echo esc_js(__('Sending...', 'aio-event-solution')); ?>';
+        fetch(ajaxurl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'action=aio_events_test_debug_email&nonce=' + btn.dataset.nonce
+        })
+        .then(r => r.json())
+        .then(data => {
+          alert(data.success ? data.data.message : (data.data.message || 'Error'));
+          btn.disabled = false;
+          btn.textContent = '<?php echo esc_js(__('Send Test Email', 'aio-event-solution')); ?>';
+        })
+        .catch(e => { alert('Error: ' + e); btn.disabled = false; });
+      });
+    })();
+    </script>
+    <?php
   }
 
   /**

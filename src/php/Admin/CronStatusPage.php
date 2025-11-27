@@ -30,7 +30,7 @@ class CronStatusPage
    */
   public static function render()
   {
-    require_once AIO_EVENTS_PATH . 'php/Scheduler/CronLogger.php';
+    require_once AIO_EVENTS_PATH . 'php/Logging/CronLogger.php';
 
     $notice = null;
 
@@ -42,11 +42,11 @@ class CronStatusPage
     }
 
     // Get status
-    $cron_status = \AIOEvents\Scheduler\CronLogger::check_wp_cron_status();
-    $should_run = \AIOEvents\Scheduler\CronLogger::should_have_run();
-    $latest_log = \AIOEvents\Scheduler\CronLogger::get_latest_log();
-    $logs = \AIOEvents\Scheduler\CronLogger::get_logs('aio_events_schedule_daily_emails', 20);
-    $stats = \AIOEvents\Scheduler\CronLogger::get_statistics('aio_events_schedule_daily_emails', 30);
+    $cron_status = \AIOEvents\Logging\CronLogger::check_wp_cron_status();
+    $should_run = \AIOEvents\Logging\CronLogger::should_have_run();
+    $latest_log = \AIOEvents\Logging\CronLogger::get_latest_log();
+    $logs = \AIOEvents\Logging\CronLogger::get_logs('aio_events_schedule_daily_emails', 20);
+    $stats = \AIOEvents\Logging\CronLogger::get_statistics('aio_events_schedule_daily_emails', 30);
 
     $context = [
       'notice' => $notice,
