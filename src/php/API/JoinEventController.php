@@ -39,8 +39,8 @@ class JoinEventController
     }
 
     // Use the same logic as REST API handler
-    require_once AIO_EVENTS_PATH . 'php/JoinTokenGenerator.php';
-    $decoded = \AIOEvents\JoinTokenGenerator::decode($token);
+    require_once AIO_EVENTS_PATH . 'php/Event/JoinLink.php';
+    $decoded = \AIOEvents\Event\JoinLink::decode_token($token);
 
     if ($decoded === false) {
       wp_die(__('Invalid join token', 'aio-event-solution'), __('Error', 'aio-event-solution'), ['response' => 400]);
@@ -75,10 +75,13 @@ class JoinEventController
       return;
     }
 
-    // Mark that user clicked join link
-    \AIOEvents\Database\RegistrationRepository::update($registration['id'], [
-      'clicked_join_link' => true,
-    ]);
+    // Mark that user clicked join link - but only if follow-up wasn't sent yet
+    // (if follow-up was sent, event ended and this is probably just watching replay)
+    if (empty($registration['followup_email_sent_at'])) {
+      \AIOEvents\Database\RegistrationRepository::update($registration['id'], [
+        'clicked_join_link' => true,
+      ]);
+    }
 
     $stream_url = get_post_meta($event_id, '_aio_event_stream_url', true);
     
@@ -120,8 +123,8 @@ class JoinEventController
       return new \WP_Error('missing_token', __('Missing join token', 'aio-event-solution'), ['status' => 400]);
     }
 
-    require_once AIO_EVENTS_PATH . 'php/JoinTokenGenerator.php';
-    $decoded = \AIOEvents\JoinTokenGenerator::decode($token);
+    require_once AIO_EVENTS_PATH . 'php/Event/JoinLink.php';
+    $decoded = \AIOEvents\Event\JoinLink::decode_token($token);
 
     if ($decoded === false) {
       return new \WP_Error('invalid_token', __('Invalid join token', 'aio-event-solution'), ['status' => 400]);
@@ -154,10 +157,13 @@ class JoinEventController
       return new \WP_Error('event_not_found', __('Event not found', 'aio-event-solution'), ['status' => 404]);
     }
 
-    // Mark that user clicked join link
-    \AIOEvents\Database\RegistrationRepository::update($registration['id'], [
-      'clicked_join_link' => true,
-    ]);
+    // Mark that user clicked join link - but only if follow-up wasn't sent yet
+    // (if follow-up was sent, event ended and this is probably just watching replay)
+    if (empty($registration['followup_email_sent_at'])) {
+      \AIOEvents\Database\RegistrationRepository::update($registration['id'], [
+        'clicked_join_link' => true,
+      ]);
+    }
 
     // Get stream URL from event meta
     $stream_url = get_post_meta($event_id, '_aio_event_stream_url', true);
@@ -178,8 +184,7 @@ class JoinEventController
       ], 200);
     }
 
-    // Redirect to stream URL
-    wp_safe_redirect($stream_url);
+    wp_redirect($stream_url, 302);
     exit;
   }
 }
