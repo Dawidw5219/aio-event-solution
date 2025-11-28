@@ -3,7 +3,6 @@
 namespace AIOEvents\Admin;
 
 use AIOEvents\Database\RegistrationRepository;
-use AIOEvents\Email\Scheduler;
 use AIOEvents\Email\BrevoClient;
 
 /**
@@ -19,7 +18,6 @@ class AjaxController
     // Admin handlers
     add_action('wp_ajax_aio_test_brevo_connection', [self::class, 'test_brevo_connection']);
     add_action('wp_ajax_aio_save_brevo_key', [self::class, 'save_brevo_key']);
-    add_action('wp_ajax_aio_cancel_scheduled_emails', [self::class, 'cancel_scheduled_emails']);
     add_action('wp_ajax_aio_force_run_cron', [self::class, 'force_run_cron']);
     add_action('wp_ajax_aio_check_github_updates', [self::class, 'check_github_updates']);
     add_action('wp_ajax_aio_cancel_event', [self::class, 'cancel_event']);
@@ -33,15 +31,16 @@ class AjaxController
   }
 
   /**
-   * Force run cron job
+   * Force run cron job - uses the same hook as scheduled cron for consistency
    */
   public static function force_run_cron()
   {
     check_ajax_referer('aio-events-admin', 'nonce');
     self::require_admin();
 
-    require_once AIO_EVENTS_PATH . 'php/Email/Scheduler.php';
-    $result = Scheduler::run_daily_schedule();
+    // Use the same hook as scheduled cron - this ensures logging to CronLogger
+    require_once AIO_EVENTS_PATH . 'php/Core/Cron.php';
+    $result = \AIOEvents\Core\Cron::run_scheduler();
 
     if ($result === false) {
       wp_send_json_error([
@@ -226,40 +225,6 @@ class AjaxController
         $result['email'] ?? 'Unknown'
       ),
     ]);
-  }
-
-  /**
-   * Cancel scheduled emails
-   */
-  public static function cancel_scheduled_emails()
-  {
-    check_ajax_referer('aio_cancel_emails', 'nonce');
-    self::require_admin();
-
-    require_once AIO_EVENTS_PATH . 'php/Email/Scheduler.php';
-    require_once AIO_EVENTS_PATH . 'php/Email/BrevoClient.php';
-
-    $settings = get_option('aio_events_settings', []);
-    $api_key = $settings['brevo_api_key'] ?? '';
-
-    if (empty($api_key)) {
-      wp_send_json_error(['message' => __('Brevo API key not configured', 'aio-event-solution')]);
-    }
-
-    $replacement_template_id = absint($_POST['replacement_template_id'] ?? 0);
-    $scheduled_emails = Scheduler::get_scheduled_emails(['limit' => 1000]);
-
-    if (empty($scheduled_emails)) {
-      wp_send_json_success(['message' => __('No scheduled emails to cancel', 'aio-event-solution')]);
-    }
-
-    $result = self::process_email_cancellation(
-      $scheduled_emails,
-      $api_key,
-      $replacement_template_id
-    );
-
-    wp_send_json_success(['message' => $result['message']]);
   }
 
   /**

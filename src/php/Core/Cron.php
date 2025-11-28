@@ -53,7 +53,7 @@ class Cron
     require_once AIO_EVENTS_PATH . 'php/Email/Scheduler.php';
     require_once AIO_EVENTS_PATH . 'php/Logging/CronLogger.php';
 
-    \AIOEvents\Email\Scheduler::create_table();
+    // Ensure cron logs table exists
     \AIOEvents\Logging\CronLogger::create_table();
 
     try {
