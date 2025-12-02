@@ -5,7 +5,7 @@
  * Text Domain: aio-event-solution
  * Domain Path: /languages
  * Description: Complete event management solution for WordPress with Brevo integration
- * Version: 1.1.3
+ * Version: 1.1.4
  * Author: App4You.dev
  * Author URI: https://app4you.dev
  * License: GPLv3 or later
@@ -138,10 +138,6 @@ function aio_events_create_tables()
 
 	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 	dbDelta($sql);
-
-  // Create scheduled emails table
-  require_once AIO_EVENTS_PATH . 'php/Email/Scheduler.php';
-  \AIOEvents\Email\Scheduler::create_table();
 
   // Create cron logs table
   require_once AIO_EVENTS_PATH . 'php/Logging/CronLogger.php';
