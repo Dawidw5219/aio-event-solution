@@ -1,0 +1,114 @@
+<div class="aio-email-debug">
+  {% if not has_brevo %}
+    <p style="color: #d63638; margin: 0;">
+      {{ __('⚠️ Brevo API not configured', 'aio-event-solution') }}
+    </p>
+  {% else %}
+    <p class="description" style="margin-top: 0;">
+      {{ __('Send test emails using the same logic as production.', 'aio-event-solution') }}
+    </p>
+    
+    <div style="margin-bottom: 12px;">
+      <label for="aio-test-email" style="display: block; margin-bottom: 4px; font-weight: 500;">
+        {{ __('Test Email', 'aio-event-solution') }}
+      </label>
+      <input 
+        type="email" 
+        id="aio-test-email" 
+        value="{{ default_email }}" 
+        class="widefat"
+        placeholder="email@example.com"
+      >
+    </div>
+    
+    <div style="margin-bottom: 12px;">
+      <label for="aio-test-name" style="display: block; margin-bottom: 4px; font-weight: 500;">
+        {{ __('Recipient Name', 'aio-event-solution') }}
+      </label>
+      <input 
+        type="text" 
+        id="aio-test-name" 
+        value="Test User" 
+        class="widefat"
+        placeholder="John Doe"
+      >
+    </div>
+    
+    <div style="margin-bottom: 12px;">
+      <label style="display: block; margin-bottom: 4px; font-weight: 500;">
+        {{ __('Email Type', 'aio-event-solution') }}
+      </label>
+      {% for type, template in templates %}
+        <label style="display: block; margin-bottom: 6px; cursor: pointer;">
+          <input 
+            type="radio" 
+            name="aio-email-type" 
+            value="{{ type }}"
+            {% if loop.first %}checked{% endif %}
+            style="margin-right: 6px;"
+          >
+          {{ template.label }}
+          {% if template.id %}
+            <span style="color: #666; font-size: 11px;">(#{{ template.id }})</span>
+          {% else %}
+            <span style="color: #d63638; font-size: 11px;">({{ __('not set', 'aio-event-solution') }})</span>
+          {% endif %}
+        </label>
+      {% endfor %}
+    </div>
+    
+    <button type="button" id="aio-send-test-email-btn" class="button button-primary" style="width: 100%;">
+      {{ __('Send Test Email', 'aio-event-solution') }}
+    </button>
+    
+    <div id="aio-test-email-result" style="margin-top: 10px; padding: 8px; display: none; border-radius: 4px;"></div>
+  {% endif %}
+</div>
+
+<script>
+jQuery(function($) {
+  $('#aio-send-test-email-btn').on('click', function() {
+    var btn = $(this);
+    var resultDiv = $('#aio-test-email-result');
+    var testEmail = $('#aio-test-email').val();
+    var testName = $('#aio-test-name').val();
+    var emailType = $('input[name="aio-email-type"]:checked').val();
+    
+    if (!testEmail) {
+      resultDiv.html('{{ __('Please enter an email address', 'aio-event-solution') }}')
+        .css({'background': '#fcf0f1', 'color': '#d63638'})
+        .show();
+      return;
+    }
+    
+    btn.prop('disabled', true).text('{{ __('Sending...', 'aio-event-solution') }}');
+    resultDiv.hide();
+    
+    $.post(ajaxurl, {
+      action: 'aio_send_test_email',
+      nonce: '{{ nonce }}',
+      event_id: {{ post_id }},
+      email_type: emailType,
+      test_email: testEmail,
+      test_name: testName
+    }, function(response) {
+      if (response.success) {
+        resultDiv.html(response.data.message)
+          .css({'background': '#edfaef', 'color': '#1e7e34'})
+          .show();
+      } else {
+        resultDiv.html(response.data.message || '{{ __('Error sending email', 'aio-event-solution') }}')
+          .css({'background': '#fcf0f1', 'color': '#d63638'})
+          .show();
+      }
+      btn.prop('disabled', false).text('{{ __('Send Test Email', 'aio-event-solution') }}');
+    }).fail(function() {
+      resultDiv.html('{{ __('Request failed', 'aio-event-solution') }}')
+        .css({'background': '#fcf0f1', 'color': '#d63638'})
+        .show();
+      btn.prop('disabled', false).text('{{ __('Send Test Email', 'aio-event-solution') }}');
+    });
+  });
+});
+</script>
+

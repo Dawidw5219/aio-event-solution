@@ -182,31 +182,23 @@ class BrevoWebhookController
     }
 
     // Build Brevo attributes from form data
-    // Map form fields to Brevo attribute names (uppercase)
     $brevo_attributes = [];
     foreach ($form_data as $key => $value) {
-      // Skip internal fields
       if (in_array(strtolower($key), ['email', 'e-mail', 'mail', 'email_address_check', 'locale'], true)) {
         continue;
       }
       
-      // Check if this is an array field (checkbox with [])
       $is_array_field = str_ends_with($key, '[]');
-      
-      // Convert key to uppercase for Brevo (remove [] suffix)
       $brevo_key = strtoupper(str_replace(['[]', '-'], ['', '_'], $key));
       
-      // Handle arrays (checkboxes) - keep as array for Brevo multi-select
       if (is_array($value)) {
         $filtered = array_values(array_filter(array_map('trim', $value)));
         if (!empty($filtered)) {
-          // Send as array for multi-select fields in Brevo
           $brevo_attributes[$brevo_key] = $filtered;
         }
       } else {
         $trimmed = is_string($value) ? trim($value) : $value;
         if (!empty($trimmed)) {
-          // If original key had [] but value is string, wrap in array
           if ($is_array_field) {
             $brevo_attributes[$brevo_key] = [$trimmed];
           } else {
@@ -216,20 +208,30 @@ class BrevoWebhookController
       }
     }
     
+    // Extract form fields to store in database
+    $form_fields = [
+      'country' => $form_data_lower['country'] ?? '',
+      'event_preferences' => $form_data['EVENT_PREFERENCES[]'] ?? $form_data['EVENT_PREFERENCES'] ?? [],
+      'treatments' => $form_data['TREATMENTS[]'] ?? $form_data['TREATMENTS'] ?? [],
+      'birth_year' => $form_data_lower['birth_year'] ?? '',
+      'webinar_source' => $form_data_lower['webinar_source'] ?? '',
+      'webinar_questions' => $form_data_lower['webinar_questions'] ?? '',
+    ];
+    
     error_log('[AIO Events] Brevo attributes built: ' . wp_json_encode($brevo_attributes));
+    error_log('[AIO Events] Form fields for DB: ' . wp_json_encode($form_fields));
 
-    // Debug: capture what we're sending
     $debug = [
       'form_data_raw' => $form_data,
       'brevo_attributes' => $brevo_attributes,
+      'form_fields' => $form_fields,
       'email' => $email,
       'name' => $name,
       'event_id' => $event_id,
     ];
 
-    // Save registration to database and add to Brevo list via API
     require_once AIO_EVENTS_PATH . 'php/Event/Registration.php';
-    $result = \AIOEvents\Event\Registration::register($event_id, $email, $name, '', $brevo_attributes);
+    $result = \AIOEvents\Event\Registration::register($event_id, $email, $name, '', $brevo_attributes, $form_fields);
 
     if (is_wp_error($result)) {
       return new \WP_REST_Response([
