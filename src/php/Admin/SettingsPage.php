@@ -856,21 +856,11 @@ class SettingsPage
   {
     global $wpdb;
     
-    // Count scheduled emails
-    $scheduled_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}aio_event_scheduled_emails");
     $logs_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}aio_activity_logs");
     
     $nonce = wp_create_nonce('aio-events-admin');
     ?>
     <div class="aio-clear-data-buttons">
-      <p>
-        <button type="button" class="button" id="clear-scheduled-emails-btn" data-nonce="<?php echo esc_attr($nonce); ?>">
-          <?php esc_html_e('Clear Scheduled Emails', 'aio-event-solution'); ?>
-        </button>
-        <span class="description" style="margin-left: 10px;">
-          <?php printf(esc_html__('(%d records)', 'aio-event-solution'), $scheduled_count); ?>
-        </span>
-      </p>
       <p>
         <button type="button" class="button" id="clear-activity-logs-btn" data-nonce="<?php echo esc_attr($nonce); ?>">
           <?php esc_html_e('Clear Activity Logs', 'aio-event-solution'); ?>
@@ -890,24 +880,6 @@ class SettingsPage
     </div>
     <script>
     (function() {
-      document.getElementById('clear-scheduled-emails-btn').addEventListener('click', function() {
-        if (!confirm('<?php echo esc_js(__('Are you sure you want to clear all scheduled emails?', 'aio-event-solution')); ?>')) return;
-        var btn = this;
-        btn.disabled = true;
-        btn.textContent = '<?php echo esc_js(__('Clearing...', 'aio-event-solution')); ?>';
-        fetch(ajaxurl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: 'action=aio_events_clear_scheduled_emails&nonce=' + btn.dataset.nonce
-        })
-        .then(r => r.json())
-        .then(data => {
-          alert(data.success ? data.data.message : (data.data.message || 'Error'));
-          location.reload();
-        })
-        .catch(e => { alert('Error: ' + e); btn.disabled = false; });
-      });
-      
       document.getElementById('clear-activity-logs-btn').addEventListener('click', function() {
         if (!confirm('<?php echo esc_js(__('Are you sure you want to clear all activity logs?', 'aio-event-solution')); ?>')) return;
         var btn = this;

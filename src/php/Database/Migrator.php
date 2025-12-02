@@ -13,7 +13,6 @@ class Migrator
   public static function run()
   {
     self::migrate_registrations_table();
-    self::migrate_scheduled_emails_table();
   }
 
   /**
@@ -45,23 +44,6 @@ class Migrator
     self::add_column_if_missing($table_name, 'birth_year', 'varchar(10) DEFAULT NULL');
     self::add_column_if_missing($table_name, 'webinar_source', 'varchar(255) DEFAULT NULL');
     self::add_column_if_missing($table_name, 'webinar_questions', 'text DEFAULT NULL');
-  }
-
-  /**
-   * Migrate scheduled_emails table - add missing columns
-   */
-  private static function migrate_scheduled_emails_table()
-  {
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'aio_event_scheduled_emails';
-
-    if (!self::table_exists($table_name)) {
-      return;
-    }
-
-    self::add_column_if_missing($table_name, 'email_type', "varchar(20) DEFAULT 'before' NOT NULL");
-    self::add_index_if_missing($table_name, 'email_type');
-    self::add_column_if_missing($table_name, 'recipient_count', "int(11) DEFAULT 0 NOT NULL");
   }
 
   /**

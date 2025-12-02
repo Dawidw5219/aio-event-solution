@@ -23,7 +23,6 @@ class AjaxController
     add_action('wp_ajax_aio_check_github_updates', [self::class, 'check_github_updates']);
     add_action('wp_ajax_aio_cancel_event', [self::class, 'cancel_event']);
     add_action('wp_ajax_aio_export_registrations_csv', [self::class, 'export_registrations_csv']);
-    add_action('wp_ajax_aio_events_clear_scheduled_emails', [self::class, 'clear_scheduled_emails']);
     add_action('wp_ajax_aio_events_test_debug_email', [self::class, 'test_debug_email']);
     add_action('wp_ajax_aio_send_test_email', [EmailDebugMetaBox::class, 'send_test_email']);
 
@@ -437,28 +436,6 @@ class AjaxController
 
     fclose($output);
     exit;
-  }
-
-  /**
-   * Clear all scheduled emails (legacy table)
-   */
-  public static function clear_scheduled_emails()
-  {
-    check_ajax_referer('aio-events-admin', 'nonce');
-    self::require_admin();
-
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'aio_event_scheduled_emails';
-    
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-    $count = $wpdb->get_var("SELECT COUNT(*) FROM {$table_name}");
-    
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-    $wpdb->query("TRUNCATE TABLE {$table_name}");
-
-    wp_send_json_success([
-      'message' => sprintf(__('Cleared %d scheduled emails.', 'aio-event-solution'), $count),
-    ]);
   }
 
   /**
