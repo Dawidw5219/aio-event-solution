@@ -23,9 +23,10 @@ class Registration
    * @param string $name User name
    * @param string $phone User phone (optional)
    * @param array $extra_attributes Additional Brevo attributes from form
+   * @param array $form_fields Form fields to store in database
    * @return array|\WP_Error Registration result
    */
-  public static function register($event_id, $email, $name, $phone = '', $extra_attributes = [])
+  public static function register($event_id, $email, $name, $phone = '', $extra_attributes = [], $form_fields = [])
   {
     require_once AIO_EVENTS_PATH . 'php/Database/RegistrationRepository.php';
     
@@ -38,7 +39,7 @@ class Registration
     }
 
     $join_token = self::generate_join_token($event_id, $email);
-    $result = RegistrationRepository::create($event_id, $email, $name, $phone, false, $join_token);
+    $result = RegistrationRepository::create($event_id, $email, $name, $phone, false, $join_token, $form_fields);
 
     if (is_wp_error($result)) {
       return $result;
@@ -48,12 +49,10 @@ class Registration
 
     self::sync_to_brevo($event_id, $email, $name, $phone, $extra_attributes, $insert_id);
     
-    // Send confirmation email - wrapped in try-catch to not break registration
     try {
       self::send_confirmation_email($event_id, $email, $name, $insert_id);
     } catch (\Exception $e) {
       error_log('[AIO Events] Failed to send confirmation email: ' . $e->getMessage());
-      // Don't break registration - user is already saved
     }
 
     return ['success' => true, 'insert_id' => $insert_id];
@@ -297,11 +296,27 @@ class Registration
       $event_id
     );
 
+    // Accumulate EVENT_CATEGORY (never overwrite, unique slugs only)
+    $event_category_slugs = self::get_event_category_slugs($event_id);
+    error_log('[AIO Events] Event categories for event ' . $event_id . ': ' . wp_json_encode($event_category_slugs));
+    
+    $event_categories_result = self::accumulate_event_categories_attribute(
+      $existing_attributes['EVENT_CATEGORY'] ?? '',
+      $event_category_slugs
+    );
+    
+    error_log('[AIO Events] EVENT_CATEGORY result: ' . $event_categories_result);
+    
+    if (!empty($event_categories_result)) {
+      $attributes['EVENT_CATEGORY'] = $event_categories_result;
+    }
+
     return $attributes;
   }
 
   /**
    * Append event ID to EVENTS attribute string
+   * Handles 40,000 character limit by removing oldest IDs if needed
    */
   private static function accumulate_events_attribute($existing_events, $event_id)
   {
@@ -310,6 +325,7 @@ class Registration
     if (!empty($existing_events)) {
       $event_ids = array_map('trim', explode(',', $existing_events));
       $event_ids = array_filter($event_ids);
+      $event_ids = array_values($event_ids);
     }
     
     $event_id_str = (string) $event_id;
@@ -317,6 +333,67 @@ class Registration
       $event_ids[] = $event_id_str;
     }
     
-    return implode(',', $event_ids);
+    $result = implode(', ', $event_ids);
+    $max_length = 40000;
+    
+    while (strlen($result) > $max_length && count($event_ids) > 1) {
+      array_shift($event_ids);
+      $result = implode(', ', $event_ids);
+    }
+    
+    return $result;
+  }
+
+  /**
+   * Get category slugs for event
+   */
+  private static function get_event_category_slugs($event_id)
+  {
+    $terms = wp_get_post_terms($event_id, 'aio_event_category', ['fields' => 'all']);
+    
+    if (is_wp_error($terms) || empty($terms)) {
+      return [];
+    }
+    
+    return array_map(function($term) {
+      return $term->slug;
+    }, $terms);
+  }
+
+  /**
+   * Append event category slugs to EVENT_CATEGORY attribute string
+   * Handles 40,000 character limit by removing oldest slugs if needed
+   * Ensures no duplicates (set behavior)
+   */
+  private static function accumulate_event_categories_attribute($existing_categories, $new_category_slugs)
+  {
+    $category_slugs = [];
+    
+    if (!empty($existing_categories)) {
+      $category_slugs = array_map('trim', explode(',', $existing_categories));
+      $category_slugs = array_filter($category_slugs);
+      $category_slugs = array_values($category_slugs);
+    }
+    
+    foreach ($new_category_slugs as $slug) {
+      $slug = trim($slug);
+      if (!empty($slug) && !in_array($slug, $category_slugs, true)) {
+        $category_slugs[] = $slug;
+      }
+    }
+    
+    if (empty($category_slugs)) {
+      return '';
+    }
+    
+    $result = implode(', ', $category_slugs);
+    $max_length = 40000;
+    
+    while (strlen($result) > $max_length && count($category_slugs) > 1) {
+      array_shift($category_slugs);
+      $result = implode(', ', $category_slugs);
+    }
+    
+    return $result;
   }
 }

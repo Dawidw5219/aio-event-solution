@@ -148,7 +148,7 @@ class RegistrationRepository
   /**
    * Create new registration
    */
-  public static function create($event_id, $email, $name, $phone = '', $brevo_added = false, $join_token = null)
+  public static function create($event_id, $email, $name, $phone = '', $brevo_added = false, $join_token = null, $form_fields = [])
   {
     global $wpdb;
     $table_name = self::get_table_name();
@@ -164,12 +164,10 @@ class RegistrationRepository
     $brevo_added = (bool) $brevo_added;
     $join_token = $join_token ? sanitize_text_field($join_token) : null;
 
-    // Check if already registered
     if (self::is_registered($event_id, $email)) {
       return new \WP_Error('already_registered', __('User is already registered', 'aio-event-solution'));
     }
 
-    // Prepare data and format arrays
     $data = [
       'event_id' => $event_id,
       'name' => $name,
@@ -179,13 +177,47 @@ class RegistrationRepository
     ];
     $formats = ['%d', '%s', '%s', '%s', '%d'];
     
-    // Add join_token (always add it, even if empty)
-    // Truncate if too long (safety check for varchar(255))
     if ($join_token && strlen($join_token) > 255) {
       $join_token = substr($join_token, 0, 255);
     }
     $data['join_token'] = $join_token ? $join_token : '';
     $formats[] = '%s';
+    
+    if (!empty($form_fields['country'])) {
+      $data['country'] = sanitize_text_field($form_fields['country']);
+      $formats[] = '%s';
+    }
+    
+    if (!empty($form_fields['event_preferences'])) {
+      $prefs = is_array($form_fields['event_preferences']) 
+        ? $form_fields['event_preferences'] 
+        : [$form_fields['event_preferences']];
+      $data['event_preferences'] = wp_json_encode(array_map('sanitize_text_field', $prefs));
+      $formats[] = '%s';
+    }
+    
+    if (!empty($form_fields['treatments'])) {
+      $treatments = is_array($form_fields['treatments']) 
+        ? $form_fields['treatments'] 
+        : [$form_fields['treatments']];
+      $data['treatments'] = wp_json_encode(array_map('sanitize_text_field', $treatments));
+      $formats[] = '%s';
+    }
+    
+    if (!empty($form_fields['birth_year'])) {
+      $data['birth_year'] = sanitize_text_field($form_fields['birth_year']);
+      $formats[] = '%s';
+    }
+    
+    if (!empty($form_fields['webinar_source'])) {
+      $data['webinar_source'] = sanitize_text_field($form_fields['webinar_source']);
+      $formats[] = '%s';
+    }
+    
+    if (!empty($form_fields['webinar_questions'])) {
+      $data['webinar_questions'] = sanitize_textarea_field($form_fields['webinar_questions']);
+      $formats[] = '%s';
+    }
 
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
     $inserted = $wpdb->insert(

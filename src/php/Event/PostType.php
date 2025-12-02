@@ -265,10 +265,12 @@ class PostType
     require_once AIO_EVENTS_PATH . 'php/Admin/EventDetailsMetaBox.php';
     require_once AIO_EVENTS_PATH . 'php/Admin/BrevoIntegrationMetaBox.php';
     require_once AIO_EVENTS_PATH . 'php/Admin/EventRegistrationsMetaBox.php';
+    require_once AIO_EVENTS_PATH . 'php/Admin/EmailDebugMetaBox.php';
 
     \AIOEvents\Admin\EventDetailsMetaBox::register();
     \AIOEvents\Admin\BrevoIntegrationMetaBox::register();
     \AIOEvents\Admin\EventRegistrationsMetaBox::register();
+    \AIOEvents\Admin\EmailDebugMetaBox::register();
   }
 
   /**

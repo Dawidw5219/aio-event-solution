@@ -37,6 +37,14 @@ class Migrator
     self::add_column_if_missing($table_name, 'reminder_email_sent_at', 'datetime DEFAULT NULL');
     self::add_column_if_missing($table_name, 'join_email_sent_at', 'datetime DEFAULT NULL');
     self::add_column_if_missing($table_name, 'followup_email_sent_at', 'datetime DEFAULT NULL');
+    
+    // Form data columns
+    self::add_column_if_missing($table_name, 'country', 'varchar(100) DEFAULT NULL');
+    self::add_column_if_missing($table_name, 'event_preferences', 'text DEFAULT NULL');
+    self::add_column_if_missing($table_name, 'treatments', 'text DEFAULT NULL');
+    self::add_column_if_missing($table_name, 'birth_year', 'varchar(10) DEFAULT NULL');
+    self::add_column_if_missing($table_name, 'webinar_source', 'varchar(255) DEFAULT NULL');
+    self::add_column_if_missing($table_name, 'webinar_questions', 'text DEFAULT NULL');
   }
 
   /**

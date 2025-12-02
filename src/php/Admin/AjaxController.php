@@ -2,6 +2,7 @@
 
 namespace AIOEvents\Admin;
 
+use AIOEvents\Admin\EmailDebugMetaBox;
 use AIOEvents\Database\RegistrationRepository;
 use AIOEvents\Email\BrevoClient;
 
@@ -24,6 +25,7 @@ class AjaxController
     add_action('wp_ajax_aio_export_registrations_csv', [self::class, 'export_registrations_csv']);
     add_action('wp_ajax_aio_events_clear_scheduled_emails', [self::class, 'clear_scheduled_emails']);
     add_action('wp_ajax_aio_events_test_debug_email', [self::class, 'test_debug_email']);
+    add_action('wp_ajax_aio_send_test_email', [EmailDebugMetaBox::class, 'send_test_email']);
 
     // Frontend handlers
     add_action('wp_ajax_aio_register_event', [self::class, 'register_event']);
@@ -376,26 +378,45 @@ class AjaxController
    */
   private static function output_csv($registrations, $event_id)
   {
-    $filename = 'rejestracje-event-' . $event_id . '-' . date('Y-m-d') . '.csv';
+    $event = get_post($event_id);
+    $slug = $event ? $event->post_name : $event_id;
+    $filename = $slug . '-' . date('Y-m-d') . '.csv';
     
     header('Content-Type: text/csv; charset=UTF-8');
     header('Content-Disposition: attachment; filename="' . $filename . '"');
     header('Pragma: no-cache');
     header('Expires: 0');
 
-    echo "\xEF\xBB\xBF"; // BOM for UTF-8
+    echo "\xEF\xBB\xBF";
 
     $output = fopen('php://output', 'w');
 
-    // Use comma as delimiter (standard CSV)
     fputcsv($output, [
       __('Name', 'aio-event-solution'),
       __('Email', 'aio-event-solution'),
       __('Registration Date', 'aio-event-solution'),
       __('Attendance', 'aio-event-solution'),
+      __('Country', 'aio-event-solution'),
+      __('Event Preferences', 'aio-event-solution'),
+      __('Treatments', 'aio-event-solution'),
+      __('Birth Year', 'aio-event-solution'),
+      __('Webinar Source', 'aio-event-solution'),
+      __('Webinar Questions', 'aio-event-solution'),
     ]);
 
     foreach ($registrations as $registration) {
+      $event_preferences = '';
+      if (!empty($registration['event_preferences'])) {
+        $decoded = json_decode($registration['event_preferences'], true);
+        $event_preferences = is_array($decoded) ? implode(', ', $decoded) : $registration['event_preferences'];
+      }
+      
+      $treatments = '';
+      if (!empty($registration['treatments'])) {
+        $decoded = json_decode($registration['treatments'], true);
+        $treatments = is_array($decoded) ? implode(', ', $decoded) : $registration['treatments'];
+      }
+      
       fputcsv($output, [
         $registration['name'] ?? '',
         $registration['email'] ?? '',
@@ -405,6 +426,12 @@ class AjaxController
         !empty($registration['clicked_join_link']) 
           ? __('Yes', 'aio-event-solution') 
           : __('No', 'aio-event-solution'),
+        $registration['country'] ?? '',
+        $event_preferences,
+        $treatments,
+        $registration['birth_year'] ?? '',
+        $registration['webinar_source'] ?? '',
+        $registration['webinar_questions'] ?? '',
       ]);
     }
 

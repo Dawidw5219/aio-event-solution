@@ -33,7 +33,6 @@
 				<th>{{ function('__', 'Email', 'aio-event-solution') }}</th>
 				<th>{{ function('__', 'Registered', 'aio-event-solution') }}</th>
 				<th style="text-align: center;">{{ function('__', 'Attended', 'aio-event-solution') }}</th>
-				<th>{{ function('__', 'Join Link', 'aio-event-solution') }}</th>
 				<th style="text-align: center; width: 35px;">🔔</th>
 				<th style="text-align: center; width: 35px;">🔗</th>
 				<th style="text-align: center; width: 35px;">📬</th>
@@ -58,14 +57,6 @@
 							<span style="color: #00a32a;">{{ function('__', 'Yes', 'aio-event-solution') }}</span>
 						{% else %}
 							{{ function('__', 'No', 'aio-event-solution') }}
-						{% endif %}
-					</td>
-					<td>
-						{% if registration.join_token %}
-							{% set join_url = function('rest_url', 'aio-events/v1/join') ~ '?token=' ~ registration.join_token %}
-							<a href="{{ join_url }}" target="_blank" style="font-size: 11px;">{{ function('__', 'Test link', 'aio-event-solution') }}</a>
-						{% else %}
-							<span style="color: #999;">—</span>
 						{% endif %}
 					</td>
 					<td style="text-align: center;">
@@ -96,7 +87,7 @@
 
 	<div style="margin-top: 15px;">
 		<button type="button" class="button button-secondary" id="aio-export-registrations-csv" data-event-id="{{ post_id }}">
-			{{ function('__', 'Export to CSV', 'aio-event-solution') }}
+			{{ function('__', 'Export Full Data to CSV', 'aio-event-solution') }}
 		</button>
 	</div>
 {% endif %}
@@ -138,7 +129,7 @@
 	(function ($) {
 $('#aio-export-registrations-csv').on('click', function () {
 var eventId = $(this).data('event-id');
-var url = ajaxurl + '?action=aio_export_registrations_csv&event_id=' + eventId + '&nonce=    {{ function("wp_create_nonce", "aio_export_csv") }}';
+var url = ajaxurl + '?action=aio_export_registrations_csv&event_id=' + eventId + '&nonce=' + '{{ function("wp_create_nonce", "aio_export_csv") }}';
 window.location.href = url;
 });
 
