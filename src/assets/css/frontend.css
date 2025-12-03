@@ -59,7 +59,7 @@
 	border-color: var(--aio-events-color-primary, #2271b1) !important;
 }
 #aio-events-form button {
-	min-width: 540px !important;
+	width: min(100%, 540px) !important;
 	text-align: center !important;
 	padding: 14px 28px;
 	font-size: 16px;
