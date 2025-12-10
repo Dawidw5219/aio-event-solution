@@ -35,7 +35,8 @@
 							{% if event_date %}
 								•
 							{% endif %}
-							{{ event_time }} ({{ timezone_string }})
+							{{ event_time }}
+							({{ timezone_string }})
 						{% endif %}
 					</div>
 				{% endif %}
@@ -44,8 +45,7 @@
 	</header>
 
 	{# Registration Form or Post-Event Message #}
-	{% set event_date = post.meta('_aio_event_start_date') %}
-	{% set is_past_event = event_date and event_date < "now"|date('Y-m-d') %}
+	{# is_past_event is calculated in PHP with proper timezone handling #}
 
 	<div class="flex flex-col gap-8">
 		{% if post.thumbnail %}

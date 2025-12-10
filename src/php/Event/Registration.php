@@ -4,6 +4,8 @@ namespace AIOEvents\Event;
 
 use AIOEvents\Database\RegistrationRepository;
 use AIOEvents\Email\BrevoClient;
+use AIOEvents\Email\EmailHelper;
+use AIOEvents\Core\Config;
 
 /**
  * Service handling event registration logic and Brevo synchronization
@@ -51,6 +53,7 @@ class Registration
     
     try {
       self::send_confirmation_email($event_id, $email, $name, $insert_id);
+      self::schedule_future_emails($event_id, $insert_id, $email, $name);
     } catch (\Exception $e) {
       error_log('[AIO Events] Failed to send confirmation email: ' . $e->getMessage());
     }
@@ -91,6 +94,7 @@ class Registration
   private static function send_confirmation_email($event_id, $email, $name, $registration_id)
   {
     require_once AIO_EVENTS_PATH . 'php/Email/BrevoClient.php';
+    require_once AIO_EVENTS_PATH . 'php/Email/EmailHelper.php';
     require_once AIO_EVENTS_PATH . 'php/Database/RegistrationRepository.php';
 
     // Prevent duplicate sends using transient (30 second window)
@@ -113,27 +117,23 @@ class Registration
     $settings = get_option('aio_events_settings', []);
     $now = time();
 
-    // Get event datetime
-    $event_date = get_post_meta($event_id, '_aio_event_start_date', true);
-    $event_time = get_post_meta($event_id, '_aio_event_start_time', true);
-    $event_datetime = strtotime($event_date . ' ' . ($event_time ?: '00:00'));
+    // Get event datetime using helper
+    $event_datetime = EmailHelper::get_event_datetime($event_id);
+    if (!$event_datetime) {
+      return false;
+    }
 
-    // Get timing settings
-    $time_join_event = absint($settings['email_time_join_event'] ?? 10); // minutes
-    $join_send_time = $event_datetime - ($time_join_event * 60);
+    // Calculate join window
+    $join_send_time = EmailHelper::calculate_send_time('join', $event_datetime, $settings);
 
     // Determine which email to send
     $is_join_window = ($now >= $join_send_time && $now < $event_datetime);
     
     if ($is_join_window) {
-      // Within join window - send join link email
-      $template_id = absint(get_post_meta($event_id, '_aio_event_email_template_join_event', true)) 
-        ?: absint($settings['email_template_join_event'] ?? 0);
+      $template_id = EmailHelper::get_template_id($event_id, 'join', $settings);
       $email_type = 'join';
     } else {
-      // Normal registration - send confirmation email
-      $template_id = absint(get_post_meta($event_id, '_aio_event_email_template_after_registration', true)) 
-        ?: absint($settings['email_template_after_registration'] ?? 0);
+      $template_id = EmailHelper::get_template_id($event_id, 'registration', $settings);
       $email_type = 'registration';
     }
 
@@ -141,30 +141,9 @@ class Registration
       return false;
     }
 
-    // Get registration for join token
+    // Get registration and build params using helper
     $registration = RegistrationRepository::get_by_id($registration_id);
-    
-    // Generate join link
-    $event_join_url = '';
-    if (!empty($registration['join_token'])) {
-      $rest_url = rest_url('aio-events/v1/join');
-      $event_join_url = add_query_arg('token', urlencode($registration['join_token']), $rest_url);
-    } else {
-      $event_join_url = get_permalink($event->ID);
-    }
-
-    $timezone_string = wp_timezone_string();
-    $event_time_with_tz = $event_time ? $event_time . ' (' . $timezone_string . ')' : '';
-
-    $params = [
-      'event_title' => $event->post_title,
-      'event_date' => date_i18n(get_option('date_format'), strtotime($event_date)),
-      'event_time' => $event_time_with_tz,
-      'event_join_url' => $event_join_url,
-      'attendee_name' => $name,
-      'recipient_name' => $name,
-      'timezone' => $timezone_string,
-    ];
+    $params = EmailHelper::build_email_params($event, $registration, $name);
 
     $options = [
       'tags' => ['event-' . $email_type, 'event-' . $event->ID],
@@ -395,5 +374,153 @@ class Registration
     }
     
     return $result;
+  }
+
+  /**
+   * Schedule future emails (join and followup) immediately after registration
+   * This ensures emails are scheduled even if cron hasn't run yet
+   */
+  private static function schedule_future_emails($event_id, $registration_id, $email, $name)
+  {
+    require_once AIO_EVENTS_PATH . 'php/Email/BrevoClient.php';
+    require_once AIO_EVENTS_PATH . 'php/Email/EmailHelper.php';
+    require_once AIO_EVENTS_PATH . 'php/Core/Config.php';
+    require_once AIO_EVENTS_PATH . 'php/Database/RegistrationRepository.php';
+    require_once AIO_EVENTS_PATH . 'php/Logging/ActivityLogger.php';
+    
+    $brevo = new BrevoClient();
+    if (!$brevo->is_configured()) {
+      return;
+    }
+
+    $event = get_post($event_id);
+    if (!$event || $event->post_type !== 'aio_event') {
+      return;
+    }
+
+    $settings = get_option('aio_events_settings', []);
+    $now = time();
+
+    // Get event datetime using helper
+    $event_datetime = EmailHelper::get_event_datetime($event_id);
+    if (!$event_datetime) {
+      return;
+    }
+
+    // Calculate send times using helper
+    $join_send_time = EmailHelper::calculate_send_time('join', $event_datetime, $settings);
+    $followup_send_time = EmailHelper::calculate_send_time('followup', $event_datetime, $settings);
+    
+    $registration = RegistrationRepository::get_by_id($registration_id);
+    if (!$registration) {
+      return;
+    }
+
+    // Build params using helper
+    $params = EmailHelper::build_email_params($event, $registration, $name);
+
+    // Get template IDs using helper
+    $event_join_template = EmailHelper::get_template_id($event_id, 'join', $settings);
+    $event_followup_template = EmailHelper::get_template_id($event_id, 'followup', $settings);
+
+    // Schedule JOIN email
+    if (empty($registration['join_email_sent_at']) && $event_join_template) {
+      if (EmailHelper::is_in_schedule_window($join_send_time, $now)) {
+        // Schedule for future
+        $scheduled_at_iso = EmailHelper::timestamp_to_iso8601($join_send_time);
+        $result = $brevo->schedule_email(
+          $event_join_template,
+          [['email' => $email, 'name' => $name]],
+          $params,
+          $scheduled_at_iso,
+          ['tags' => ['event-join', 'event-' . $event_id]]
+        );
+        
+        if (!is_wp_error($result)) {
+          RegistrationRepository::mark_email_sent($registration_id, 'join');
+          \AIOEvents\Logging\ActivityLogger::log(
+            'email_scheduled',
+            'registration_join',
+            sprintf('Scheduled join email for %s at %s UTC', $email, gmdate('d/m/Y H:i', $join_send_time)),
+            ['template_id' => $event_join_template, 'scheduled_at' => $scheduled_at_iso],
+            $event_id,
+            $email,
+            'success'
+          );
+        }
+      } elseif (EmailHelper::is_in_grace_period('join', $join_send_time, $event_datetime, $now)) {
+        // Send immediately (within grace period)
+        $result = $brevo->schedule_email(
+          $event_join_template,
+          [['email' => $email, 'name' => $name]],
+          $params,
+          null,
+          ['tags' => ['event-join', 'event-' . $event_id]]
+        );
+        
+        if (!is_wp_error($result)) {
+          RegistrationRepository::mark_email_sent($registration_id, 'join');
+          \AIOEvents\Logging\ActivityLogger::log(
+            'email_sent',
+            'registration_join_immediate',
+            sprintf('Sent join email immediately to %s (grace period)', $email),
+            ['template_id' => $event_join_template],
+            $event_id,
+            $email,
+            'success'
+          );
+        }
+      }
+    }
+
+    // Schedule FOLLOWUP email
+    if (empty($registration['followup_email_sent_at']) && $event_followup_template) {
+      if (EmailHelper::is_in_schedule_window($followup_send_time, $now)) {
+        // Schedule for future
+        $scheduled_at_iso = EmailHelper::timestamp_to_iso8601($followup_send_time);
+        $result = $brevo->schedule_email(
+          $event_followup_template,
+          [['email' => $email, 'name' => $name]],
+          $params,
+          $scheduled_at_iso,
+          ['tags' => ['event-followup', 'event-' . $event_id]]
+        );
+        
+        if (!is_wp_error($result)) {
+          RegistrationRepository::mark_email_sent($registration_id, 'followup');
+          \AIOEvents\Logging\ActivityLogger::log(
+            'email_scheduled',
+            'registration_followup',
+            sprintf('Scheduled followup email for %s at %s UTC', $email, gmdate('d/m/Y H:i', $followup_send_time)),
+            ['template_id' => $event_followup_template, 'scheduled_at' => $scheduled_at_iso],
+            $event_id,
+            $email,
+            'success'
+          );
+        }
+      } elseif (EmailHelper::is_in_grace_period('followup', $followup_send_time, $event_datetime, $now)) {
+        // Send immediately (within grace period)
+        $result = $brevo->schedule_email(
+          $event_followup_template,
+          [['email' => $email, 'name' => $name]],
+          $params,
+          null,
+          ['tags' => ['event-followup', 'event-' . $event_id]]
+        );
+        
+        if (!is_wp_error($result)) {
+          RegistrationRepository::mark_email_sent($registration_id, 'followup');
+          \AIOEvents\Logging\ActivityLogger::log(
+            'email_sent',
+            'registration_followup_immediate',
+            sprintf('Sent followup email immediately to %s (grace period)', $email),
+            ['template_id' => $event_followup_template],
+            $event_id,
+            $email,
+            'success'
+          );
+        }
+      }
+    }
   }
 }
