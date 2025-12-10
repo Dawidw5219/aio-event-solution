@@ -312,4 +312,107 @@ class Scheduler
       'followup_sent' => 0,
     ];
   }
+
+  /**
+   * Catch up missed followup emails for past events (within 7 days)
+   * This is a safety net - sends followups that weren't sent for any reason
+   */
+  public static function catch_up_missed_followups()
+  {
+    global $wpdb;
+    
+    require_once AIO_EVENTS_PATH . 'php/Database/RegistrationRepository.php';
+    require_once AIO_EVENTS_PATH . 'php/Email/EmailHelper.php';
+    require_once AIO_EVENTS_PATH . 'php/Core/Config.php';
+
+    $settings = get_option('aio_events_settings', []);
+    $brevo = new BrevoClient();
+    
+    if (!$brevo->is_configured()) {
+      return ['sent' => 0, 'errors' => 0];
+    }
+
+    $sent = 0;
+    $errors = 0;
+    $now = time();
+    
+    // Get events from last 7 days
+    $start_date = date('Y-m-d', strtotime('-7 days'));
+    $end_date = date('Y-m-d');
+
+    $events = get_posts([
+      'post_type' => 'aio_event',
+      'post_status' => 'publish',
+      'posts_per_page' => -1,
+      'meta_query' => [
+        [
+          'key' => '_aio_event_start_date',
+          'value' => [$start_date, $end_date],
+          'compare' => 'BETWEEN',
+          'type' => 'DATE',
+        ],
+      ],
+    ]);
+
+    foreach ($events as $event) {
+      // Skip cancelled events
+      if (get_post_meta($event->ID, '_aio_event_cancelled', true) === '1') {
+        continue;
+      }
+      if (get_post_meta($event->ID, '_aio_event_emails_cancelled', true) === '1') {
+        continue;
+      }
+
+      $event_datetime = EmailHelper::get_event_datetime($event->ID);
+      if (!$event_datetime || $event_datetime > $now) {
+        continue;
+      }
+
+      // Check if within 7 day grace period
+      $grace_end = $event_datetime + Config::get_followup_grace_seconds();
+      if ($now > $grace_end) {
+        continue;
+      }
+
+      // Get followup template
+      $template_id = EmailHelper::get_template_id($event->ID, 'followup', $settings);
+      if (!$template_id) {
+        continue;
+      }
+
+      // Get registrations without followup email
+      $registrations = RegistrationRepository::get_needing_email($event->ID, 'followup');
+      
+      foreach ($registrations as $registration) {
+        $email = $registration['email'] ?? '';
+        $name = $registration['name'] ?? '';
+        
+        if (empty($email) || !is_email($email)) {
+          $errors++;
+          continue;
+        }
+
+        $params = EmailHelper::build_email_params($event, $registration, $name);
+        
+        $result = $brevo->schedule_email(
+          $template_id,
+          [['email' => $email, 'name' => $name]],
+          $params,
+          null,
+          ['tags' => ['event-followup-catchup', 'event-' . $event->ID]]
+        );
+
+        if (is_wp_error($result)) {
+          $errors++;
+          error_log('[AIO Events Catchup] Failed to send followup to ' . $email . ': ' . $result->get_error_message());
+        } else {
+          $sent++;
+          RegistrationRepository::mark_email_sent($registration['id'], 'followup');
+          error_log('[AIO Events Catchup] Sent missed followup to ' . $email . ' for event ' . $event->ID);
+        }
+      }
+    }
+
+    return ['sent' => $sent, 'errors' => $errors];
+  }
 }

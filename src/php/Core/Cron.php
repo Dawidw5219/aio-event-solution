@@ -75,6 +75,19 @@ class Cron
         $error_count
       );
 
+      // Catchup: send missed followups for past events (within 7 days)
+      $catchup_result = \AIOEvents\Email\Scheduler::catch_up_missed_followups();
+      if (is_array($catchup_result) && ($catchup_result['sent'] ?? 0) > 0) {
+        \AIOEvents\Logging\CronLogger::log(
+          self::HOOK_NAME . '_catchup',
+          'success',
+          sprintf('Catchup: sent %d missed followup emails', $catchup_result['sent']),
+          0,
+          $catchup_result['sent'],
+          $catchup_result['errors'] ?? 0
+        );
+      }
+
       return $result;
     } catch (\Exception $e) {
       $execution_duration = microtime(true) - $start_time;
