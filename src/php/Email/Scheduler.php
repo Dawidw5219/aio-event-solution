@@ -4,6 +4,7 @@ namespace AIOEvents\Email;
 
 use AIOEvents\Database\RegistrationRepository;
 use AIOEvents\Logging\ActivityLogger;
+use AIOEvents\Core\Config;
 
 /**
  * Email Scheduler
@@ -14,16 +15,6 @@ use AIOEvents\Logging\ActivityLogger;
 class Scheduler
 {
   /**
-   * Maximum hours ahead we can schedule in Brevo
-   */
-  const MAX_SCHEDULE_HOURS = 48;
-
-  /**
-   * Minimum hours before event for reminder (registration must be this early)
-   */
-  const MIN_REGISTRATION_HOURS_FOR_REMINDER = 24;
-
-  /**
    * Run daily scheduler - called by cron
    * Schedules all pending emails for upcoming events (within 48h window)
    */
@@ -31,18 +22,10 @@ class Scheduler
   {
     require_once AIO_EVENTS_PATH . 'php/Database/RegistrationRepository.php';
     require_once AIO_EVENTS_PATH . 'php/Logging/ActivityLogger.php';
+    require_once AIO_EVENTS_PATH . 'php/Email/EmailHelper.php';
+    require_once AIO_EVENTS_PATH . 'php/Core/Config.php';
 
     $settings = get_option('aio_events_settings', []);
-    
-    // Get template IDs
-    $reminder_template_id = absint($settings['email_template_before_event'] ?? 0);
-    $join_template_id = absint($settings['email_template_join_event'] ?? 0);
-    $followup_template_id = absint($settings['email_template_after_event'] ?? 0);
-
-    // Get timing settings (in minutes)
-    $time_before_event = absint($settings['email_time_before_event'] ?? 1440); // Default: 24h
-    $time_join_event = absint($settings['email_time_join_event'] ?? 10); // Default: 10 min
-    $time_after_event = absint($settings['email_time_after_event'] ?? 120); // Default: 2h
 
     $brevo = new BrevoClient();
     if (!$brevo->is_configured()) {
@@ -53,7 +36,7 @@ class Scheduler
     $scheduled_count = 0;
     $error_count = 0;
     $now = time();
-    $max_schedule_time = $now + (self::MAX_SCHEDULE_HOURS * 3600); // 48h from now
+    $max_schedule_time = $now + Config::get_max_schedule_seconds();
 
     // Get all events within relevant time window
     $events = self::get_events_in_window();
@@ -67,99 +50,96 @@ class Scheduler
         continue;
       }
 
-      $event_datetime = self::get_event_datetime($event->ID);
+      $event_datetime = EmailHelper::get_event_datetime($event->ID);
       if (!$event_datetime) {
         continue;
       }
 
-      // Calculate email send times
-      $reminder_send_time = $event_datetime - ($time_before_event * 60);
-      $join_send_time = $event_datetime - ($time_join_event * 60);
-      $followup_send_time = $event_datetime + ($time_after_event * 60);
+      // Calculate email send times using helper
+      $reminder_send_time = EmailHelper::calculate_send_time('reminder', $event_datetime, $settings);
+      $join_send_time = EmailHelper::calculate_send_time('join', $event_datetime, $settings);
+      $followup_send_time = EmailHelper::calculate_send_time('followup', $event_datetime, $settings);
 
-      // Get event-specific template overrides
-      $event_reminder_template = absint(get_post_meta($event->ID, '_aio_event_email_template_before_event', true)) ?: $reminder_template_id;
-      $event_join_template = absint(get_post_meta($event->ID, '_aio_event_email_template_join_event', true)) ?: $join_template_id;
-      $event_followup_template = absint(get_post_meta($event->ID, '_aio_event_email_template_after_event', true)) ?: $followup_template_id;
+      // Get template IDs using helper
+      $event_reminder_template = EmailHelper::get_template_id($event->ID, 'reminder', $settings);
+      $event_join_template = EmailHelper::get_template_id($event->ID, 'join', $settings);
+      $event_followup_template = EmailHelper::get_template_id($event->ID, 'followup', $settings);
 
       // Process REMINDER emails
-      // Schedule if: send_time is within 48h window AND before event
-      if ($event_reminder_template && $reminder_send_time > $now && $reminder_send_time <= $max_schedule_time && $reminder_send_time < $event_datetime) {
-        $result = self::schedule_email_type(
-          $event,
-          'reminder',
-          $event_reminder_template,
-          $brevo,
-          $reminder_send_time,
-          self::MIN_REGISTRATION_HOURS_FOR_REMINDER
-        );
-        $scheduled_count += $result['scheduled'];
-        $error_count += $result['errors'];
-      }
-      // Also send immediately if time has passed but still before event
-      elseif ($event_reminder_template && $reminder_send_time <= $now && $now < $event_datetime) {
-        $result = self::schedule_email_type(
-          $event,
-          'reminder',
-          $event_reminder_template,
-          $brevo,
-          null, // Send immediately
-          self::MIN_REGISTRATION_HOURS_FOR_REMINDER
-        );
-        $scheduled_count += $result['scheduled'];
-        $error_count += $result['errors'];
+      if ($event_reminder_template) {
+        if (EmailHelper::is_in_schedule_window($reminder_send_time, $now) && $reminder_send_time < $event_datetime) {
+          $result = self::schedule_email_type(
+            $event,
+            'reminder',
+            $event_reminder_template,
+            $brevo,
+            $reminder_send_time,
+            Config::MIN_REGISTRATION_HOURS_FOR_REMINDER
+          );
+          $scheduled_count += $result['scheduled'];
+          $error_count += $result['errors'];
+        } elseif (EmailHelper::is_in_grace_period('reminder', $reminder_send_time, $event_datetime, $now)) {
+          $result = self::schedule_email_type(
+            $event,
+            'reminder',
+            $event_reminder_template,
+            $brevo,
+            null,
+            Config::MIN_REGISTRATION_HOURS_FOR_REMINDER
+          );
+          $scheduled_count += $result['scheduled'];
+          $error_count += $result['errors'];
+        }
       }
 
       // Process JOIN emails
-      // Schedule if: send_time is within 48h window
-      if ($event_join_template && $join_send_time > $now && $join_send_time <= $max_schedule_time) {
-        $result = self::schedule_email_type(
-          $event,
-          'join',
-          $event_join_template,
-          $brevo,
-          $join_send_time
-        );
-        $scheduled_count += $result['scheduled'];
-        $error_count += $result['errors'];
-      }
-      // Also send immediately if time has passed but within grace period
-      elseif ($event_join_template && $join_send_time <= $now && $now < ($event_datetime + 3600)) {
-        $result = self::schedule_email_type(
-          $event,
-          'join',
-          $event_join_template,
-          $brevo,
-          null // Send immediately
-        );
-        $scheduled_count += $result['scheduled'];
-        $error_count += $result['errors'];
+      if ($event_join_template) {
+        if (EmailHelper::is_in_schedule_window($join_send_time, $now)) {
+          $result = self::schedule_email_type(
+            $event,
+            'join',
+            $event_join_template,
+            $brevo,
+            $join_send_time
+          );
+          $scheduled_count += $result['scheduled'];
+          $error_count += $result['errors'];
+        } elseif (EmailHelper::is_in_grace_period('join', $join_send_time, $event_datetime, $now)) {
+          $result = self::schedule_email_type(
+            $event,
+            'join',
+            $event_join_template,
+            $brevo,
+            null
+          );
+          $scheduled_count += $result['scheduled'];
+          $error_count += $result['errors'];
+        }
       }
 
       // Process FOLLOW-UP emails
-      // Schedule if: send_time is within 48h window
-      if ($event_followup_template && $followup_send_time > $now && $followup_send_time <= $max_schedule_time) {
-        $result = self::schedule_email_type(
-          $event,
-          'followup',
-          $event_followup_template,
-          $brevo,
-          $followup_send_time
-        );
-        $scheduled_count += $result['scheduled'];
-        $error_count += $result['errors'];
-      }
-      // Also send immediately if time has passed but within 7 days
-      elseif ($event_followup_template && $followup_send_time <= $now && $now < ($event_datetime + (7 * DAY_IN_SECONDS))) {
-        $result = self::schedule_email_type(
-          $event,
-          'followup',
-          $event_followup_template,
-          $brevo,
-          null // Send immediately
-        );
-        $scheduled_count += $result['scheduled'];
-        $error_count += $result['errors'];
+      if ($event_followup_template) {
+        if (EmailHelper::is_in_schedule_window($followup_send_time, $now)) {
+          $result = self::schedule_email_type(
+            $event,
+            'followup',
+            $event_followup_template,
+            $brevo,
+            $followup_send_time
+          );
+          $scheduled_count += $result['scheduled'];
+          $error_count += $result['errors'];
+        } elseif (EmailHelper::is_in_grace_period('followup', $followup_send_time, $event_datetime, $now)) {
+          $result = self::schedule_email_type(
+            $event,
+            'followup',
+            $event_followup_template,
+            $brevo,
+            null
+          );
+          $scheduled_count += $result['scheduled'];
+          $error_count += $result['errors'];
+        }
       }
     }
 
@@ -203,19 +183,13 @@ class Scheduler
     $scheduled = 0;
     $errors = 0;
 
-    $event_date = get_post_meta($event->ID, '_aio_event_start_date', true);
-    $event_time = get_post_meta($event->ID, '_aio_event_start_time', true);
-    $timezone_string = wp_timezone_string();
-    $event_time_with_tz = $event_time ? $event_time . ' (' . $timezone_string . ')' : '';
-
     // Convert timestamp to ISO 8601 for Brevo
-    $scheduled_at_iso = $scheduled_at ? gmdate('c', $scheduled_at) : null;
+    $scheduled_at_iso = $scheduled_at ? EmailHelper::timestamp_to_iso8601($scheduled_at) : null;
 
     foreach ($registrations as $registration) {
       try {
         $recipient_email = $registration['email'] ?? '';
         $recipient_name = $registration['name'] ?? '';
-        $join_token = $registration['join_token'] ?? '';
 
         // Skip invalid registrations
         if (empty($recipient_email) || !is_email($recipient_email)) {
@@ -224,32 +198,15 @@ class Scheduler
           continue;
         }
 
-        // Build join URL
-        $event_join_url = '';
-        if (!empty($join_token)) {
-          $rest_url = rest_url('aio-events/v1/join');
-          $event_join_url = add_query_arg('token', urlencode($join_token), $rest_url);
-        } else {
-          $event_join_url = get_permalink($event->ID);
-        }
-
-        // Build params for Brevo template
-        $params = [
-          'event_title' => $event->post_title,
-          'event_date' => date_i18n(get_option('date_format'), strtotime($event_date)),
-          'event_time' => $event_time_with_tz,
-          'event_join_url' => $event_join_url,
-          'attendee_name' => $recipient_name,
-          'recipient_name' => $recipient_name, // alias for backwards compatibility
-          'timezone' => $timezone_string,
-        ];
+        // Build params using helper
+        $params = EmailHelper::build_email_params($event, $registration, $recipient_name);
 
         // Schedule/send email via Brevo
         $result = $brevo->schedule_email(
           $template_id,
           [['email' => $recipient_email, 'name' => $recipient_name]],
           $params,
-          $scheduled_at_iso, // Pass scheduled time to Brevo
+          $scheduled_at_iso,
           ['tags' => ['event-' . $email_type, 'event-' . $event->ID]]
         );
 
@@ -267,7 +224,7 @@ class Scheduler
           RegistrationRepository::mark_email_sent($registration['id'], $email_type);
           
           $action = $scheduled_at ? 'scheduled' : 'sent';
-          $time_info = $scheduled_at ? ' for ' . date_i18n('d/m/Y H:i', $scheduled_at) : '';
+          $time_info = $scheduled_at ? ' for ' . gmdate('d/m/Y H:i', $scheduled_at) . ' UTC' : '';
           
           ActivityLogger::log(
             ActivityLogger::TYPE_EMAIL_SENT,
@@ -288,7 +245,6 @@ class Scheduler
           $template_id,
           'Exception: ' . $e->getMessage()
         );
-        // Continue to next registration - don't break the loop
         continue;
       }
     }
@@ -327,22 +283,6 @@ class Scheduler
   }
 
   /**
-   * Get event datetime as timestamp
-   */
-  private static function get_event_datetime($event_id)
-  {
-    $event_date = get_post_meta($event_id, '_aio_event_start_date', true);
-    $event_time = get_post_meta($event_id, '_aio_event_start_time', true);
-
-    if (empty($event_date)) {
-      return null;
-    }
-
-    $datetime_str = $event_date . ' ' . ($event_time ?: '00:00');
-    return strtotime($datetime_str);
-  }
-
-  /**
    * Get email statistics for an event
    * Returns counts of sent/pending for each email type
    */
@@ -372,5 +312,4 @@ class Scheduler
       'followup_sent' => 0,
     ];
   }
-
 }

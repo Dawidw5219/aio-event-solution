@@ -3,6 +3,7 @@
 namespace AIOEvents\Frontend;
 
 use Timber\Timber;
+use AIOEvents\Email\EmailHelper;
 
 /**
  * Single Event Template Handler
@@ -19,7 +20,8 @@ class SingleTemplate
     get_header();
 
     $context = Timber::context();
-    $context['post'] = Timber::get_post();
+    $post = Timber::get_post();
+    $context['post'] = $post;
 
     // Get settings for content box styling
     $settings = get_option('aio_events_settings', []);
@@ -28,9 +30,28 @@ class SingleTemplate
     // Check if registration was successful (from redirect)
     $context['registration_success'] = isset($_GET['registered']) && $_GET['registered'] === '1';
 
+    // Check if event has passed (with proper timezone handling)
+    $context['is_past_event'] = self::is_event_past($post->ID);
+
     Timber::render('events/single.twig', $context);
 
     get_footer();
+  }
+
+  /**
+   * Check if event has already passed (using proper timezone)
+   */
+  private static function is_event_past($event_id)
+  {
+    require_once AIO_EVENTS_PATH . 'php/Email/EmailHelper.php';
+    
+    $event_datetime = EmailHelper::get_event_datetime($event_id);
+    
+    if (!$event_datetime) {
+      return false;
+    }
+
+    return time() > $event_datetime;
   }
 }
 

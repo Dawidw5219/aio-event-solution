@@ -2,6 +2,8 @@
 
 namespace AIOEvents\Email;
 
+require_once __DIR__ . '/EmailHelper.php';
+
 /**
  * ICS Calendar File Generator
  */
@@ -26,12 +28,17 @@ class IcsGenerator
       return '';
     }
 
-    // Parse date and time
+    // Parse date and time - convert from local timezone to UTC
     $datetime_str = $start_date . ' ' . $start_time;
-    $start_timestamp = strtotime($datetime_str);
+    $start_timestamp = EmailHelper::local_datetime_to_utc_timestamp($datetime_str);
+    
+    if (!$start_timestamp) {
+      return '';
+    }
+    
     $end_timestamp = $start_timestamp + ($duration_minutes * 60);
 
-    // Format dates for ICS (UTC)
+    // Format dates for ICS (UTC) - timestamp is already UTC
     $start_utc = gmdate('Ymd\THis\Z', $start_timestamp);
     $end_utc = gmdate('Ymd\THis\Z', $end_timestamp);
     $created_utc = gmdate('Ymd\THis\Z');
