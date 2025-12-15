@@ -210,7 +210,7 @@ class SettingsPage
         'min' => 1,
       ]
     );
-    
+
     // Add a dummy field to display variables after all template fields
     add_settings_field(
       'email_template_variables_info',
@@ -249,15 +249,31 @@ class SettingsPage
     );
 
     // ============================================
-    // SEKCJA 3: Komunikat po zakończeniu eventu
+    // SEKCJA 3: Post-Event (grace period + message)
     // ============================================
     
-    // Global Post-Event Message Section
+    // Global Post-Event Section
     add_settings_section(
       'aio_events_post_event_message_section',
-      __('Post-Event Message', 'aio-event-solution'),
+      __('Post-Event', 'aio-event-solution'),
       null,
       'aio-events-settings'
+    );
+
+    // Registration grace period (in minutes)
+    add_settings_field(
+      'registration_grace_minutes',
+      __('Registration Grace Period (minutes)', 'aio-event-solution'),
+      [self::class, 'render_number_field'],
+      'aio-events-settings',
+      'aio_events_post_event_message_section',
+      [
+        'id' => 'registration_grace_minutes',
+        'label_for' => 'registration_grace_minutes',
+        'description' => __('How many minutes after event starts can users still register (0 = registration closes at event start, default: 45)', 'aio-event-solution'),
+        'default' => 45,
+        'min' => 0,
+      ]
     );
 
     // Global Post-Event Message
@@ -270,7 +286,7 @@ class SettingsPage
       [
         'id' => 'global_post_event_message',
         'label_for' => 'global_post_event_message',
-        'description' => __('Default message displayed after event ends. Can be overridden for each event individually.', 'aio-event-solution'),
+        'description' => __('Default message displayed after registration closes. Can be overridden for each event individually.', 'aio-event-solution'),
       ]
     );
 
@@ -494,6 +510,13 @@ class SettingsPage
       if ($sanitized['email_time_after_event'] < 1) {
         $sanitized['email_time_after_event'] = 120; // Default: 2h
       }
+    }
+    
+    // Registration grace period (allow 0)
+    if (isset($input['registration_grace_minutes'])) {
+      $sanitized['registration_grace_minutes'] = absint($input['registration_grace_minutes']);
+    } else {
+      $sanitized['registration_grace_minutes'] = 45; // Default: 45 minutes
     }
 
     // Post-event message
