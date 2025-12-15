@@ -39,7 +39,7 @@ class SingleTemplate
   }
 
   /**
-   * Check if event has already passed (using proper timezone)
+   * Check if registration period has ended (using proper timezone + grace period)
    */
   private static function is_event_past($event_id)
   {
@@ -51,7 +51,11 @@ class SingleTemplate
       return false;
     }
 
-    return time() > $event_datetime;
+    $settings = get_option('aio_events_settings', []);
+    $grace_minutes = isset($settings['registration_grace_minutes']) ? absint($settings['registration_grace_minutes']) : 45;
+    $registration_closes_at = $event_datetime + ($grace_minutes * 60);
+
+    return time() > $registration_closes_at;
   }
 }
 
