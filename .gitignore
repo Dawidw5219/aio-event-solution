@@ -7,3 +7,4 @@ dist/
 
 # Generated CSS files (built from globals.css)
 src/static/css/generated/
+NOTES.md
