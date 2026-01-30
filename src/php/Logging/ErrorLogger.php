@@ -216,28 +216,28 @@ class ErrorLogger
     <body>
       <div class="container">
         <div class="header">
-          <h2 style="margin: 0;">AIO Events Error Notification</h2>
+          <h2 style="margin: 0;"><?php echo esc_html__('AIO Events Error Notification', 'aio-event-solution'); ?></h2>
         </div>
         <div class="content">
           <div class="section">
-            <div class="section-title">Error Details</div>
+            <div class="section-title"><?php echo esc_html__('Error Details', 'aio-event-solution'); ?></div>
             <div class="detail">
-              <strong>Level:</strong> <?php echo esc_html(strtoupper($error_details['level'])); ?><br>
-              <strong>Type:</strong> <?php echo esc_html($error_details['type']); ?><br>
-              <strong>Message:</strong> <?php echo esc_html($error_details['message']); ?><br>
-              <strong>Timestamp:</strong> <?php echo esc_html($error_details['timestamp']); ?>
+              <strong><?php echo esc_html__('Level:', 'aio-event-solution'); ?></strong> <?php echo esc_html(strtoupper($error_details['level'])); ?><br>
+              <strong><?php echo esc_html__('Type:', 'aio-event-solution'); ?></strong> <?php echo esc_html($error_details['type']); ?><br>
+              <strong><?php echo esc_html__('Message:', 'aio-event-solution'); ?></strong> <?php echo esc_html($error_details['message']); ?><br>
+              <strong><?php echo esc_html__('Timestamp:', 'aio-event-solution'); ?></strong> <?php echo esc_html($error_details['timestamp']); ?>
             </div>
           </div>
 
           <?php if (!empty($error_details['exception'])): ?>
           <div class="section">
-            <div class="section-title">Exception Details</div>
+            <div class="section-title"><?php echo esc_html__('Exception Details', 'aio-event-solution'); ?></div>
             <div class="detail">
-              <strong>Class:</strong> <?php echo esc_html($error_details['exception']['class']); ?><br>
-              <strong>Message:</strong> <?php echo esc_html($error_details['exception']['message']); ?><br>
-              <strong>Code:</strong> <?php echo esc_html($error_details['exception']['code']); ?><br>
-              <strong>File:</strong> <?php echo esc_html($error_details['exception']['file']); ?><br>
-              <strong>Line:</strong> <?php echo esc_html($error_details['exception']['line']); ?>
+              <strong><?php echo esc_html__('Class:', 'aio-event-solution'); ?></strong> <?php echo esc_html($error_details['exception']['class']); ?><br>
+              <strong><?php echo esc_html__('Message:', 'aio-event-solution'); ?></strong> <?php echo esc_html($error_details['exception']['message']); ?><br>
+              <strong><?php echo esc_html__('Code:', 'aio-event-solution'); ?></strong> <?php echo esc_html($error_details['exception']['code']); ?><br>
+              <strong><?php echo esc_html__('File:', 'aio-event-solution'); ?></strong> <?php echo esc_html($error_details['exception']['file']); ?><br>
+              <strong><?php echo esc_html__('Line:', 'aio-event-solution'); ?></strong> <?php echo esc_html($error_details['exception']['line']); ?>
             </div>
             <?php if (!empty($error_details['exception']['trace'])): ?>
             <div class="code">
@@ -249,12 +249,12 @@ class ErrorLogger
 
           <?php if (!empty($error_details['wp_error'])): ?>
           <div class="section">
-            <div class="section-title">WordPress Error</div>
+            <div class="section-title"><?php echo esc_html__('WordPress Error', 'aio-event-solution'); ?></div>
             <div class="detail">
-              <strong>Code:</strong> <?php echo esc_html($error_details['wp_error']['code']); ?><br>
-              <strong>Message:</strong> <?php echo esc_html($error_details['wp_error']['message']); ?>
+              <strong><?php echo esc_html__('Code:', 'aio-event-solution'); ?></strong> <?php echo esc_html($error_details['wp_error']['code']); ?><br>
+              <strong><?php echo esc_html__('Message:', 'aio-event-solution'); ?></strong> <?php echo esc_html($error_details['wp_error']['message']); ?>
               <?php if (!empty($error_details['wp_error']['data'])): ?>
-              <br><strong>Data:</strong> <?php echo esc_html(wp_json_encode($error_details['wp_error']['data'])); ?>
+              <br><strong><?php echo esc_html__('Data:', 'aio-event-solution'); ?></strong> <?php echo esc_html(wp_json_encode($error_details['wp_error']['data'])); ?>
               <?php endif; ?>
             </div>
           </div>
@@ -262,7 +262,7 @@ class ErrorLogger
 
           <?php if (!empty($error_details['context'])): ?>
           <div class="section">
-            <div class="section-title">Context</div>
+            <div class="section-title"><?php echo esc_html__('Context', 'aio-event-solution'); ?></div>
             <div class="code">
               <?php echo esc_html(wp_json_encode($error_details['context'], JSON_PRETTY_PRINT)); ?>
             </div>
@@ -271,25 +271,25 @@ class ErrorLogger
 
           <?php if (!empty($error_details['request'])): ?>
           <div class="section">
-            <div class="section-title">Request Details</div>
+            <div class="section-title"><?php echo esc_html__('Request Details', 'aio-event-solution'); ?></div>
             <div class="detail">
-              <strong>URI:</strong> <?php echo esc_html($error_details['request']['uri']); ?><br>
-              <strong>Method:</strong> <?php echo esc_html($error_details['request']['method']); ?><br>
-              <strong>IP:</strong> <?php echo esc_html($error_details['request']['ip']); ?>
+              <strong><?php echo esc_html__('URI:', 'aio-event-solution'); ?></strong> <?php echo esc_html($error_details['request']['uri']); ?><br>
+              <strong><?php echo esc_html__('Method:', 'aio-event-solution'); ?></strong> <?php echo esc_html($error_details['request']['method']); ?><br>
+              <strong><?php echo esc_html__('IP:', 'aio-event-solution'); ?></strong> <?php echo esc_html($error_details['request']['ip']); ?>
             </div>
           </div>
           <?php endif; ?>
 
           <div class="section">
-            <div class="section-title">System Information</div>
+            <div class="section-title"><?php echo esc_html__('System Information', 'aio-event-solution'); ?></div>
             <div class="detail">
-              <strong>Site URL:</strong> <?php echo esc_html($error_details['site_url']); ?><br>
-              <strong>WordPress Version:</strong> <?php echo esc_html($error_details['wp_version']); ?>
+              <strong><?php echo esc_html__('Site URL:', 'aio-event-solution'); ?></strong> <?php echo esc_html($error_details['site_url']); ?><br>
+              <strong><?php echo esc_html__('WordPress Version:', 'aio-event-solution'); ?></strong> <?php echo esc_html($error_details['wp_version']); ?>
             </div>
           </div>
         </div>
         <div class="footer">
-          This is an automated error notification from AIO Events plugin.
+          <?php echo esc_html__('This is an automated error notification from AIO Events plugin.', 'aio-event-solution'); ?>
         </div>
       </div>
     </body>

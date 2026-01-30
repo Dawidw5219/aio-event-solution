@@ -5,11 +5,11 @@ msgstr ""
 "Project-Id-Version: All-in-One Event Solution 1.0.0\n"
 "Report-Msgid-Bugs-To: "
 "https://wordpress.org/support/plugin/aio-event-solution\n"
-"POT-Creation-Date: 2025-11-17 17:35:01+00:00\n"
+"POT-Creation-Date: 2026-01-30 12:00:00+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: 2025-11-26 12:00:00+0100\n"
+"PO-Revision-Date: 2026-01-30 12:00:00+0100\n"
 "Last-Translator: App4You.dev <info@app4you.dev>\n"
 "Language-Team: Spanish\n"
 "Language: es_ES\n"
@@ -180,7 +180,8 @@ msgstr "Correos programados:"
 msgid "Errors:"
 msgstr "Errores:"
 
-#: php/Admin/CronStatusPage.php:134
+#: php/Admin/CronStatusPage.php:134 php/Logging/ErrorLogger.php:227
+#: php/Logging/ErrorLogger.php:237 php/Logging/ErrorLogger.php:255
 msgid "Message:"
 msgstr "Mensaje:"
 
@@ -1249,6 +1250,98 @@ msgstr "Nombre de categoría"
 #: php/Taxonomies/EventCategoryMeta.php:303
 msgid "Badge Preview"
 msgstr "Vista previa de insignia"
+
+#: php/Logging/ErrorLogger.php:219
+msgid "AIO Events Error Notification"
+msgstr "Notificación de error de AIO Events"
+
+#: php/Logging/ErrorLogger.php:223
+msgid "Error Details"
+msgstr "Detalles del error"
+
+#: php/Logging/ErrorLogger.php:225
+msgid "Level:"
+msgstr "Nivel:"
+
+#: php/Logging/ErrorLogger.php:226
+msgid "Type:"
+msgstr "Tipo:"
+
+#: php/Logging/ErrorLogger.php:228
+msgid "Timestamp:"
+msgstr "Marca de tiempo:"
+
+#: php/Logging/ErrorLogger.php:234
+msgid "Exception Details"
+msgstr "Detalles de la excepción"
+
+#: php/Logging/ErrorLogger.php:236
+msgid "Class:"
+msgstr "Clase:"
+
+#: php/Logging/ErrorLogger.php:238 php/Logging/ErrorLogger.php:254
+msgid "Code:"
+msgstr "Código:"
+
+#: php/Logging/ErrorLogger.php:239
+msgid "File:"
+msgstr "Archivo:"
+
+#: php/Logging/ErrorLogger.php:240
+msgid "Line:"
+msgstr "Línea:"
+
+#: php/Logging/ErrorLogger.php:252
+msgid "WordPress Error"
+msgstr "Error de WordPress"
+
+#: php/Logging/ErrorLogger.php:257
+msgid "Data:"
+msgstr "Datos:"
+
+#: php/Logging/ErrorLogger.php:265
+msgid "Context"
+msgstr "Contexto"
+
+#: php/Logging/ErrorLogger.php:274
+msgid "Request Details"
+msgstr "Detalles de la solicitud"
+
+#: php/Logging/ErrorLogger.php:276
+msgid "URI:"
+msgstr "URI:"
+
+#: php/Logging/ErrorLogger.php:277
+msgid "Method:"
+msgstr "Método:"
+
+#: php/Logging/ErrorLogger.php:278
+msgid "IP:"
+msgstr "IP:"
+
+#: php/Logging/ErrorLogger.php:284
+msgid "System Information"
+msgstr "Información del sistema"
+
+#: php/Logging/ErrorLogger.php:286
+msgid "Site URL:"
+msgstr "URL del sitio:"
+
+#: php/Logging/ErrorLogger.php:287
+msgid "WordPress Version:"
+msgstr "Versión de WordPress:"
+
+#: php/Logging/ErrorLogger.php:292
+msgid "This is an automated error notification from AIO Events plugin."
+msgstr "Esta es una notificación automática de error del plugin AIO Events."
+
+#: php/Core/Assets.php:161
+msgid "An unexpected error occurred. Please try again."
+msgstr "Se produjo un error inesperado. Inténtelo de nuevo."
+
+#: php/Plugin.php:676
+msgid "Registration table does not exist"
+msgstr "La tabla de registros no existe"
 
 #. Plugin Name of the plugin/theme
 msgid "All-in-One Event Solution"

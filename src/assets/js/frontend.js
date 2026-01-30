@@ -57,7 +57,7 @@ jQuery(document).ready(($) => {
 					'<div class="aio-message aio-message-error">' +
 						aioEvents.i18n.error +
 						": " +
-						"An unexpected error occurred. Please try again." +
+						aioEvents.i18n.unexpectedError +
 						"</div>",
 				);
 			},

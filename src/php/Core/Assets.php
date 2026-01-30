@@ -158,6 +158,7 @@ class Assets
       'loading' => __('Loading...', 'aio-event-solution'),
       'registered' => __('Registered!', 'aio-event-solution'),
       'errorOccurred' => __('An error occurred. Please try again.', 'aio-event-solution'),
+      'unexpectedError' => __('An unexpected error occurred. Please try again.', 'aio-event-solution'),
       'invalidResponse' => __('Invalid server response', 'aio-event-solution'),
       'errorGeneric' => __('An error occurred', 'aio-event-solution'),
     ];
