@@ -78,6 +78,14 @@ class Assets
       true
     );
 
+    wp_enqueue_script(
+      'aio-events-brevo-translations',
+      AIO_EVENTS_URL . 'assets/js/brevo-form-translations.js',
+      [],
+      AIO_EVENTS_VERSION,
+      true
+    );
+
     wp_localize_script('aio-events-frontend', 'aioEvents', [
       'ajaxUrl' => admin_url('admin-ajax.php'),
       'restUrl' => rest_url('aio-events/v1/'),
