@@ -61,7 +61,22 @@
 		{% endif %}
 
 		<div id="aio-events-form" class="p-8 rounded-[15px] prose prose-lg max-w-none">
-			{% if is_past_event %}
+			{% if is_cancelled %}
+				{# Event is cancelled #}
+				<div class="bg-red-50 border-l-4 border-red-500 p-8 rounded-lg text-center">
+					<div class="text-red-600 mb-4">
+						<svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+						</svg>
+					</div>
+					<h3 class="text-2xl font-bold text-gray-800 mb-2">
+						{{ function('__', 'This event has been cancelled', 'aio-event-solution') }}
+					</h3>
+					<p class="text-gray-600">
+						{{ function('__', 'We apologize for the inconvenience. Check out our other upcoming events!', 'aio-event-solution') }}
+					</p>
+				</div>
+			{% elseif is_past_event %}
 				{# Event has ended - show post-event message #}
 				{% set post_event_msg = post.meta('_aio_event_post_event_message') %}
 				{% if post_event_msg %}

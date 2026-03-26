@@ -75,6 +75,11 @@ class BrevoWebhookController
       return new \WP_Error('invalid_data', __('Missing event_id', 'aio-event-solution'), ['status' => 400]);
     }
 
+    // Block registration for cancelled events
+    if (get_post_meta($event_id, '_aio_event_cancelled', true) === '1') {
+      return new \WP_Error('event_cancelled', __('This event has been cancelled', 'aio-event-solution'), ['status' => 400]);
+    }
+
     // Get Brevo form action URL from event meta
     $brevo_form_embed = get_post_meta($event_id, '_aio_event_brevo_form_embed', true);
     if (empty($brevo_form_embed)) {

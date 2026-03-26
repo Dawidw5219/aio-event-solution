@@ -23,6 +23,7 @@ class AjaxController
     add_action('wp_ajax_aio_check_github_updates', [self::class, 'check_github_updates']);
     add_action('wp_ajax_aio_cancel_event', [self::class, 'cancel_event']);
     add_action('wp_ajax_aio_export_registrations_csv', [self::class, 'export_registrations_csv']);
+    add_action('wp_ajax_aio_import_registrations_csv', [self::class, 'import_registrations_csv']);
     add_action('wp_ajax_aio_events_test_debug_email', [self::class, 'test_debug_email']);
     add_action('wp_ajax_aio_send_test_email', [EmailDebugMetaBox::class, 'send_test_email']);
 
@@ -436,6 +437,120 @@ class AjaxController
 
     fclose($output);
     exit;
+  }
+
+  /**
+   * Import registrations from CSV file
+   */
+  public static function import_registrations_csv()
+  {
+    check_ajax_referer('aio_import_csv', 'nonce');
+    self::require_admin();
+
+    $event_id = absint($_POST['event_id'] ?? 0);
+    if (empty($event_id)) {
+      wp_send_json_error(['message' => __('Event ID is required', 'aio-event-solution')]);
+    }
+
+    $event = get_post($event_id);
+    if (!$event || $event->post_type !== 'aio_event') {
+      wp_send_json_error(['message' => __('Invalid event', 'aio-event-solution')]);
+    }
+
+    if (empty($_FILES['csv_file']) || $_FILES['csv_file']['error'] !== UPLOAD_ERR_OK) {
+      wp_send_json_error(['message' => __('No CSV file uploaded or upload error', 'aio-event-solution')]);
+    }
+
+    $file = $_FILES['csv_file'];
+    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    if ($ext !== 'csv') {
+      wp_send_json_error(['message' => __('Only CSV files are allowed', 'aio-event-solution')]);
+    }
+
+    require_once AIO_EVENTS_PATH . 'php/Database/RegistrationRepository.php';
+    require_once AIO_EVENTS_PATH . 'php/Event/Registration.php';
+
+    if (!RegistrationRepository::table_exists()) {
+      wp_send_json_error(['message' => __('Registrations table does not exist', 'aio-event-solution')]);
+    }
+
+    $handle = fopen($file['tmp_name'], 'r');
+    if (!$handle) {
+      wp_send_json_error(['message' => __('Could not read CSV file', 'aio-event-solution')]);
+    }
+
+    // Skip BOM if present
+    $bom = fread($handle, 3);
+    if ($bom !== "\xEF\xBB\xBF") {
+      rewind($handle);
+    }
+
+    // Skip header row
+    fgetcsv($handle);
+
+    $imported = 0;
+    $skipped = 0;
+    $errors = 0;
+
+    while (($row = fgetcsv($handle)) !== false) {
+      if (count($row) < 2) {
+        continue;
+      }
+
+      $name = trim($row[0]);
+      $email = trim($row[1]);
+
+      if (empty($email) || !is_email($email)) {
+        $errors++;
+        continue;
+      }
+
+      if (empty($name)) {
+        $name = explode('@', $email)[0];
+      }
+
+      try {
+        $result = \AIOEvents\Event\Registration::register($event_id, $email, $name);
+
+        if (is_wp_error($result)) {
+          $errors++;
+        } elseif (!empty($result['already_registered'])) {
+          $skipped++;
+        } else {
+          $imported++;
+        }
+      } catch (\Exception $e) {
+        error_log('[AIO Events] CSV import error for ' . $email . ': ' . $e->getMessage());
+        $errors++;
+      }
+    }
+
+    fclose($handle);
+
+    require_once AIO_EVENTS_PATH . 'php/Logging/ActivityLogger.php';
+    \AIOEvents\Logging\ActivityLogger::log(
+      'event',
+      'registrations_imported',
+      sprintf('Imported %d registrations from CSV to event: %s', $imported, $event->post_title),
+      ['imported' => $imported, 'skipped' => $skipped, 'errors' => $errors],
+      $event_id,
+      null,
+      'info'
+    );
+
+    $message = sprintf(
+      __('Import complete: %d imported, %d skipped (duplicates), %d errors.', 'aio-event-solution'),
+      $imported,
+      $skipped,
+      $errors
+    );
+
+    wp_send_json_success([
+      'message' => $message,
+      'imported' => $imported,
+      'skipped' => $skipped,
+      'errors' => $errors,
+    ]);
   }
 
   /**

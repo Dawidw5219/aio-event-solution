@@ -42,15 +42,30 @@ class Shortcode
       'meta_key' => '_aio_event_start_date',
     ];
 
+    // Exclude cancelled events
+    $args['meta_query'] = [
+      'relation' => 'AND',
+      [
+        'relation' => 'OR',
+        [
+          'key' => '_aio_event_cancelled',
+          'compare' => 'NOT EXISTS',
+        ],
+        [
+          'key' => '_aio_event_cancelled',
+          'value' => '1',
+          'compare' => '!=',
+        ],
+      ],
+    ];
+
     // Show only upcoming events by default
     if ($atts['show_past'] !== 'yes') {
-      $args['meta_query'] = [
-        [
-          'key' => '_aio_event_start_date',
-          'value' => date('Y-m-d'),
-          'compare' => '>=',
-          'type' => 'DATE',
-        ],
+      $args['meta_query'][] = [
+        'key' => '_aio_event_start_date',
+        'value' => date('Y-m-d'),
+        'compare' => '>=',
+        'type' => 'DATE',
       ];
     }
 

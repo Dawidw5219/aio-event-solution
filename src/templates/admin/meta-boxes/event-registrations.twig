@@ -92,6 +92,26 @@
 	</div>
 {% endif %}
 
+{# Import Registrations from CSV #}
+{% if not event_cancelled %}
+	<div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
+		<h4 style="margin: 0 0 10px 0;">{{ function('__', 'Import Registrations from CSV', 'aio-event-solution') }}</h4>
+		<p class="description" style="margin-bottom: 15px;">
+			{{ function('__', 'Upload a CSV file with Name and Email columns to import registrations. Duplicates will be skipped.', 'aio-event-solution') }}
+		</p>
+
+		<div style="margin-bottom: 10px;">
+			<input type="file" id="aio-import-csv-file" accept=".csv" />
+		</div>
+
+		<button type="button" class="button button-secondary" id="aio-import-csv-btn" data-event-id="{{ post_id }}">
+			{{ function('__', 'Import CSV', 'aio-event-solution') }}
+		</button>
+
+		<div id="aio-import-csv-message" style="margin-top: 10px; display: none;"></div>
+	</div>
+{% endif %}
+
 {# Cancel Event Section #}
 {% if not event_cancelled %}
 	<div style="margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd;">
@@ -131,6 +151,49 @@ $('#aio-export-registrations-csv').on('click', function () {
 var eventId = $(this).data('event-id');
 var url = ajaxurl + '?action=aio_export_registrations_csv&event_id=' + eventId + '&nonce=' + '{{ function("wp_create_nonce", "aio_export_csv") }}';
 window.location.href = url;
+});
+
+$('#aio-import-csv-btn').on('click', function () {
+var $button = $(this);
+var $message = $('#aio-import-csv-message');
+var eventId = $button.data('event-id');
+var fileInput = document.getElementById('aio-import-csv-file');
+
+if (!fileInput.files.length) {
+$message.html('<span style="color: #d63638;">{{ function("__", "Please select a CSV file first.", "aio-event-solution")|e("js") }}</span>').show();
+return;
+}
+
+$button.prop('disabled', true).text('{{ function("__", "Importing...", "aio-event-solution")|e("js") }}');
+
+var formData = new FormData();
+formData.append('action', 'aio_import_registrations_csv');
+formData.append('event_id', eventId);
+formData.append('nonce', '{{ import_nonce }}');
+formData.append('csv_file', fileInput.files[0]);
+
+$.ajax({
+url: ajaxurl,
+type: 'POST',
+data: formData,
+processData: false,
+contentType: false,
+success: function (response) {
+if (response.success) {
+$message.html('<span style="color: #00a32a;">✓ ' + response.data.message + '</span>').show();
+if (response.data.imported > 0) {
+setTimeout(function () { location.reload(); }, 2000);
+}
+} else {
+$message.html('<span style="color: #d63638;">✗ ' + (response.data.message || 'Error') + '</span>').show();
+$button.prop('disabled', false).text('{{ function("__", "Import CSV", "aio-event-solution")|e("js") }}');
+}
+},
+error: function () {
+$message.html('<span style="color: #d63638;">✗ Server error</span>').show();
+$button.prop('disabled', false).text('{{ function("__", "Import CSV", "aio-event-solution")|e("js") }}');
+}
+});
 });
 
 $('#aio-cancel-event-btn').on('click', function () {

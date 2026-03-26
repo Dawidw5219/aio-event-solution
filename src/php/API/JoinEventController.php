@@ -75,6 +75,12 @@ class JoinEventController
       return;
     }
 
+    // Block join for cancelled events
+    if (get_post_meta($event_id, '_aio_event_cancelled', true) === '1') {
+      wp_die(__('This event has been cancelled', 'aio-event-solution'), __('Event Cancelled', 'aio-event-solution'), ['response' => 410]);
+      return;
+    }
+
     // Mark that user clicked join link - but only if follow-up wasn't sent yet
     // (if follow-up was sent, event ended and this is probably just watching replay)
     if (empty($registration['followup_email_sent_at'])) {

@@ -86,6 +86,7 @@ class EventRegistrationsMetaBox
       'templates' => $templates,
       'post_id' => $post->ID,
       'cancel_nonce' => wp_create_nonce('aio_cancel_event'),
+      'import_nonce' => wp_create_nonce('aio_import_csv'),
     ];
 
     // Render using Timber/Twig

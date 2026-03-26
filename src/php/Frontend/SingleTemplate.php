@@ -33,6 +33,9 @@ class SingleTemplate
     // Check if event has passed (with proper timezone handling)
     $context['is_past_event'] = self::is_event_past($post->ID);
 
+    // Check if event is cancelled
+    $context['is_cancelled'] = get_post_meta($post->ID, '_aio_event_cancelled', true) === '1';
+
     Timber::render('events/single.twig', $context);
 
     get_footer();

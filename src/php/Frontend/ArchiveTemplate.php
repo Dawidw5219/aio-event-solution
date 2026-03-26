@@ -17,7 +17,21 @@ class ArchiveTemplate
   {
     $context = Timber::context();
 
-    $context['posts'] = Timber::get_posts();
+    $context['posts'] = Timber::get_posts([
+      'post_type' => 'aio_event',
+      'meta_query' => [
+        'relation' => 'OR',
+        [
+          'key' => '_aio_event_cancelled',
+          'compare' => 'NOT EXISTS',
+        ],
+        [
+          'key' => '_aio_event_cancelled',
+          'value' => '1',
+          'compare' => '!=',
+        ],
+      ],
+    ]);
     $context['title'] = get_the_archive_title();
 
     // If it's a term archive (category or tag)
