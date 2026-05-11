@@ -76,37 +76,80 @@ class BrevoClient
   }
 
   /**
-   * Get all contact lists
+   * Fetch a paginated Brevo collection endpoint (e.g. /contacts/lists, /smtp/templates).
+   * Brevo defaults to limit=10, max 50 per page — without paginating, callers only see the first page.
+   *
+   * @param string $path        Endpoint path relative to api_url (e.g. '/contacts/lists').
+   * @param string $data_key    Key in the JSON response holding the items (e.g. 'lists', 'templates').
+   * @param array  $extra_args  Extra query args (e.g. ['sort' => 'desc']).
+   * @param int    $page_size   Page size (Brevo max is 50 for most endpoints).
+   * @return array|\WP_Error    Full collection or error.
    */
-  public function get_lists()
+  private function fetch_paginated_collection($path, $data_key, array $extra_args = [], $page_size = 50)
   {
     if (!$this->is_configured()) {
       return new \WP_Error('no_api_key', __('Brevo API key not configured', 'aio-event-solution'));
     }
 
-    $response = wp_remote_get($this->api_url . '/contacts/lists', [
-      'headers' => [
-        'api-key' => $this->api_key,
-        'Content-Type' => 'application/json',
-      ],
-      'timeout' => 15,
-    ]);
+    $all_items = [];
+    $offset = 0;
+    $max_iterations = 100; // safety: up to 5000 items at page_size=50
 
-    if (is_wp_error($response)) {
-      return $response;
-    }
-
-    $body = wp_remote_retrieve_body($response);
-    $data = json_decode($body, true);
-
-    if (wp_remote_retrieve_response_code($response) !== 200) {
-      return new \WP_Error(
-        'brevo_api_error',
-        $data['message'] ?? __('Failed to fetch lists from Brevo', 'aio-event-solution')
+    for ($i = 0; $i < $max_iterations; $i++) {
+      $url = add_query_arg(
+        array_merge($extra_args, ['limit' => $page_size, 'offset' => $offset]),
+        $this->api_url . $path
       );
+
+      $response = wp_remote_get($url, [
+        'headers' => [
+          'api-key' => $this->api_key,
+          'Content-Type' => 'application/json',
+        ],
+        'timeout' => 15,
+      ]);
+
+      if (is_wp_error($response)) {
+        return $response;
+      }
+
+      $body = wp_remote_retrieve_body($response);
+      $data = json_decode($body, true);
+
+      if (wp_remote_retrieve_response_code($response) !== 200) {
+        return new \WP_Error(
+          'brevo_api_error',
+          $data['message'] ?? sprintf(__('Failed to fetch %s from Brevo', 'aio-event-solution'), $data_key)
+        );
+      }
+
+      $page = $data[$data_key] ?? [];
+      if (empty($page)) {
+        break;
+      }
+
+      $all_items = array_merge($all_items, $page);
+
+      $total = isset($data['count']) ? (int) $data['count'] : null;
+      if ($total !== null && count($all_items) >= $total) {
+        break;
+      }
+      if (count($page) < $page_size) {
+        break;
+      }
+
+      $offset += $page_size;
     }
 
-    return $data['lists'] ?? [];
+    return $all_items;
+  }
+
+  /**
+   * Get all contact lists
+   */
+  public function get_lists()
+  {
+    return $this->fetch_paginated_collection('/contacts/lists', 'lists', ['sort' => 'desc']);
   }
 
   /**
@@ -527,61 +570,32 @@ class BrevoClient
    */
   public function get_email_templates()
   {
-    if (!$this->is_configured()) {
-      return new \WP_Error('no_api_key', __('Brevo API key not configured', 'aio-event-solution'));
+    $templates = $this->fetch_paginated_collection('/smtp/templates', 'templates');
+
+    if (is_wp_error($templates)) {
+      return $templates;
     }
 
-    $response = wp_remote_get($this->api_url . '/smtp/templates', [
-      'headers' => [
-        'api-key' => $this->api_key,
-        'Content-Type' => 'application/json',
-      ],
-      'timeout' => 15,
-    ]);
-
-    if (is_wp_error($response)) {
-      return $response;
-    }
-
-    $body = wp_remote_retrieve_body($response);
-    $data = json_decode($body, true);
-
-    if (wp_remote_retrieve_response_code($response) !== 200) {
-      return new \WP_Error(
-        'brevo_api_error',
-        $data['message'] ?? __('Failed to fetch email templates from Brevo', 'aio-event-solution')
-      );
-    }
-
-    $templates = $data['templates'] ?? [];
-    
-    // Log for debugging
     if (empty($templates)) {
-      error_log('[AIO Events] Brevo API returned empty templates array. Response: ' . wp_json_encode($data));
+      error_log('[AIO Events] Brevo API returned empty templates array.');
       return [];
     }
-    
-    // Filter only active templates (if status field exists)
-    // Brevo may return templates with 'status' field or without it
-    $active_templates = array_filter($templates, function($template) {
-      // If status field exists, filter only 'active' ones
-      // If status field doesn't exist, include all templates (backward compatibility)
+
+    // Filter only active templates (if status field exists).
+    // Brevo may return templates with 'status' field or without it.
+    $active_templates = array_filter($templates, function ($template) {
       if (isset($template['status'])) {
-        // Check for various possible status values
         $status = strtolower($template['status']);
         return in_array($status, ['active', 'published', 'enabled'], true);
       }
-      // If no status field, assume template is active (include it)
       return true;
     });
-    
-    // Log if all templates were filtered out
+
     if (empty($active_templates) && !empty($templates)) {
       error_log('[AIO Events] All templates filtered out. Total templates: ' . count($templates) . ', Sample template structure: ' . wp_json_encode($templates[0] ?? []));
-      // Return all templates as fallback if filtering removed everything
       return array_values($templates);
     }
-    
+
     return array_values($active_templates);
   }
 }
