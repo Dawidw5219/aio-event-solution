@@ -27,10 +27,11 @@
 				<th scope="row">
 					<label for="aio_event_brevo_list_id">
 						{{ function('__', 'Brevo List for this event', 'aio-event-solution') }}
+						<span style="color: #d63638;">*</span>
 					</label>
 				</th>
 				<td>
-					<select name="aio_event_brevo_list_id" id="aio_event_brevo_list_id" style="width: 100%;">
+					<select name="aio_event_brevo_list_id" id="aio_event_brevo_list_id" style="width: 100%;" required>
 						<option value="">{{ function('__', '— Select list —', 'aio-event-solution') }}</option>
 						{% for list in lists %}
 							<option value="{{ list.id }}" {% if event_list_id == list.id %} selected {% endif %}>

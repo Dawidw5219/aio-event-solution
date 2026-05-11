@@ -23,6 +23,12 @@ class Config
   const FOLLOWUP_GRACE_PERIOD_DAYS = 7;
 
   /**
+   * Window after event start during which a join-link click still counts as "attended".
+   * Clicks after this window (typically from the follow-up email = replay) are ignored.
+   */
+  const ATTENDED_TRACKING_WINDOW_HOURS = 12;
+
+  /**
    * Minimum hours before event that registration must occur to receive reminder email
    */
   const MIN_REGISTRATION_HOURS_FOR_REMINDER = 24;

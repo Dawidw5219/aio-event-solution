@@ -393,7 +393,7 @@ class Scheduler
         }
 
         $params = EmailHelper::build_email_params($event, $registration, $name);
-        
+
         $result = $brevo->schedule_email(
           $template_id,
           [['email' => $email, 'name' => $name]],

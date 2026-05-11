@@ -118,7 +118,12 @@ class RegistrationRepository
     $limit = $limit ? absint($limit) : null;
     $offset = absint($offset);
 
-    $query = "SELECT * FROM {$table_name} WHERE event_id = %d ORDER BY id DESC";
+    // is_first_registration = 1 when no earlier row (smaller id) exists for the same email across the whole table.
+    $query = "SELECT r.*, "
+      . "NOT EXISTS ("
+      . "SELECT 1 FROM {$table_name} r2 WHERE r2.email = r.email AND r2.id < r.id"
+      . ") AS is_first_registration "
+      . "FROM {$table_name} r WHERE r.event_id = %d ORDER BY r.id DESC";
     $query_args = [$event_id];
 
     if ($limit) {

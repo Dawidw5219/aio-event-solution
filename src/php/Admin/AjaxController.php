@@ -395,6 +395,7 @@ class AjaxController
       __('Name', 'aio-event-solution'),
       __('Email', 'aio-event-solution'),
       __('Registration Date', 'aio-event-solution'),
+      __('First Registration', 'aio-event-solution'),
       __('Attendance', 'aio-event-solution'),
       __('Country', 'aio-event-solution'),
       __('Event Preferences', 'aio-event-solution'),
@@ -420,11 +421,14 @@ class AjaxController
       fputcsv($output, [
         $registration['name'] ?? '',
         $registration['email'] ?? '',
-        $registration['registered_at'] 
-          ? date_i18n('Y-m-d H:i', strtotime($registration['registered_at'])) 
+        $registration['registered_at']
+          ? date_i18n('Y-m-d H:i', strtotime($registration['registered_at']))
           : '',
-        !empty($registration['clicked_join_link']) 
-          ? __('Yes', 'aio-event-solution') 
+        !empty($registration['is_first_registration'])
+          ? __('Yes', 'aio-event-solution')
+          : __('No', 'aio-event-solution'),
+        !empty($registration['clicked_join_link'])
+          ? __('Yes', 'aio-event-solution')
           : __('No', 'aio-event-solution'),
         $registration['country'] ?? '',
         $event_preferences,

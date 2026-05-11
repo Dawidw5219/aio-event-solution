@@ -81,9 +81,9 @@ class JoinEventController
       return;
     }
 
-    // Mark that user clicked join link - but only if follow-up wasn't sent yet
-    // (if follow-up was sent, event ended and this is probably just watching replay)
-    if (empty($registration['followup_email_sent_at'])) {
+    // Mark "attended" only for clicks within the tracking window after event start.
+    // Clicks after the window (typically replay watchers from the follow-up email) are ignored.
+    if (self::should_track_click_as_attended($event_id)) {
       \AIOEvents\Database\RegistrationRepository::update($registration['id'], [
         'clicked_join_link' => true,
       ]);
@@ -163,9 +163,9 @@ class JoinEventController
       return new \WP_Error('event_not_found', __('Event not found', 'aio-event-solution'), ['status' => 404]);
     }
 
-    // Mark that user clicked join link - but only if follow-up wasn't sent yet
-    // (if follow-up was sent, event ended and this is probably just watching replay)
-    if (empty($registration['followup_email_sent_at'])) {
+    // Mark "attended" only for clicks within the tracking window after event start.
+    // Clicks after the window (typically replay watchers from the follow-up email) are ignored.
+    if (self::should_track_click_as_attended($event_id)) {
       \AIOEvents\Database\RegistrationRepository::update($registration['id'], [
         'clicked_join_link' => true,
       ]);
@@ -192,6 +192,28 @@ class JoinEventController
 
     wp_redirect($stream_url, 302);
     exit;
+  }
+
+  /**
+   * Decide whether a join-link click should count as "attended".
+   *
+   * Window: from event start through Config::ATTENDED_TRACKING_WINDOW_HOURS after.
+   * Before event start: always track (clicks come from the join email).
+   * After window: never track (clicks come from the follow-up / replay email).
+   * Missing event datetime: track (no basis to reject — be permissive).
+   */
+  private static function should_track_click_as_attended($event_id)
+  {
+    require_once AIO_EVENTS_PATH . 'php/Email/EmailHelper.php';
+    require_once AIO_EVENTS_PATH . 'php/Core/Config.php';
+
+    $event_datetime = \AIOEvents\Email\EmailHelper::get_event_datetime($event_id);
+    if (!$event_datetime) {
+      return true;
+    }
+
+    $window_end = $event_datetime + (\AIOEvents\Core\Config::ATTENDED_TRACKING_WINDOW_HOURS * 3600);
+    return time() <= $window_end;
   }
 }
 

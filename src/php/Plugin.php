@@ -69,8 +69,7 @@ class Plugin
    */
   private function init_github_updater()
   {
-    require_once AIO_EVENTS_PATH . 'php/Core/Updater.php';
-    new \AIOEvents\Core\Updater(AIO_EVENTS_PATH . 'aio-event-solution.php');
+    require_once AIO_EVENTS_PATH . 'php/Core/GithubUpdater.php';
   }
 
   /**
