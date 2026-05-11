@@ -687,7 +687,7 @@ class SettingsPage
       echo '<select id="' . esc_attr($args['id']) . '" name="aio_events_settings[' . esc_attr($args['id']) . ']" style="min-width:400px;width:100%;">';
       echo '<option value="">— ' . esc_html__('Select list', 'aio-event-solution') . ' —</option>';
       foreach ($lists as $list) {
-        echo '<option value="' . esc_attr($list['id']) . '"' . selected($value, $list['id'], false) . '>' . esc_html($list['name']) . ' (' . esc_html($list['totalSubscribers'] ?? 0) . ' ' . esc_html__('subscribers', 'aio-event-solution') . ')</option>';
+        echo '<option value="' . esc_attr($list['id']) . '"' . selected($value, $list['id'], false) . '>' . esc_html($list['name']) . '</option>';
       }
       echo '</select>';
     } else {

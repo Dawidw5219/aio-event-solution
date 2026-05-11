@@ -36,8 +36,6 @@
 						{% for list in lists %}
 							<option value="{{ list.id }}" {% if event_list_id == list.id %} selected {% endif %}>
 								{{ list.name }}
-								({{ list.totalSubscribers }}
-								{{ function('__', 'subscribers', 'aio-event-solution') }})
 							</option>
 						{% endfor %}
 					</select>
